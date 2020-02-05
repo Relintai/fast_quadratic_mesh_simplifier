@@ -1,7 +1,6 @@
 #include "register_types.h"
 
 #include "fast_quadratic_mesh_simplifier.h"
-#include "mesh_simplifier.h"
 
 /*
 
@@ -29,7 +28,6 @@ SOFTWARE.
 */
 
 void register_fast_quadratic_mesh_simplifier_types() {
-	ClassDB::register_class<MeshSimplifier>();
 	ClassDB::register_class<FastQuadraticMeshSimplifier>();
 }
 

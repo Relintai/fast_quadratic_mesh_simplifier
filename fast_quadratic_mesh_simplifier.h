@@ -26,7 +26,7 @@ SOFTWARE.
 
 */
 
-#include "mesh_simplifier.h"
+#include "core/reference.h"
 
 #include <limits>
 
@@ -38,27 +38,29 @@ SOFTWARE.
 
 class VoxelMesher;
 
-class FastQuadraticMeshSimplifier : public MeshSimplifier {
-	GDCLASS(FastQuadraticMeshSimplifier, MeshSimplifier);
+class FastQuadraticMeshSimplifier : public Reference {
+	GDCLASS(FastQuadraticMeshSimplifier, Reference);
 
 public:
 	void initialize(Array arrays);
-	void refresh_vertices();
-	void SimplifyMesh(float quality);
-	void SimplifyMeshLossless();
-	void UpdateMesh(int iteration);
-	void UpdateReferences();
-	int RemoveVertexPass(int startTrisCount, int targetTrisCount, double threshold, PoolVector<bool> &deleted0, PoolVector<bool> &deleted1, int deletedTris);
-	void CompactMesh();
-	bool AreUVsTheSame(int channel, int indexA, int indexB);
-	double VertexError(SymmetricMatrix q, double x, double y, double z);
-	double CalculateError(MUVertex vert0, MUVertex vert1, Vector3 *result);
-	int UpdateTriangles(int i0, int ia0, const MUVertex &v, PoolVector<bool> &deleted, int deletedTriangles);
-	bool Flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> &deleted);
-	static Vector3 CalculateBarycentricCoords(Vector3 const &point, Vector3 const &a, Vector3 const &b, Vector3 const &c);
-	void InterpolateVertexAttributes(int dst, int i0, int i1, int i2, Vector3 &barycentricCoord);
+	Array get_arrays();
+	void simplify_mesh(float quality);
+	void simplify_mesh_lossless();
 
-	static double Min3(double val1, double val2, double val3) {
+	void update_mesh(int iteration);
+	void refresh_vertices();
+	void update_references();
+	int remove_vertex_pass(int startTrisCount, int targetTrisCount, double threshold, PoolVector<bool> &deleted0, PoolVector<bool> &deleted1, int deletedTris);
+	void compact_mesh();
+	bool are_uvs_the_same(int channel, int indexA, int indexB);
+	double vertex_error(SymmetricMatrix q, double x, double y, double z);
+	double calculate_error(MUVertex vert0, MUVertex vert1, Vector3 *result);
+	int update_triangles(int i0, int ia0, const MUVertex &v, PoolVector<bool> &deleted, int deletedTriangles);
+	bool flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> &deleted);
+	static Vector3 calculate_barycentric_coords(Vector3 const &point, Vector3 const &a, Vector3 const &b, Vector3 const &c);
+	void interpolate_vertex_attributes(int dst, int i0, int i1, int i2, Vector3 &barycentricCoord);
+
+	static double min3(double val1, double val2, double val3) {
 		return (val1 < val2 ? (val1 < val3 ? val1 : val3) : (val2 < val3 ? val2 : val3));
 	}
 
@@ -76,15 +78,13 @@ private:
 	PoolVector<MUVertex> _mu_vertices;
 	PoolVector<MURef> _mu_refs;
 
-	//Ref<VoxelMesher> _mesher;
-
-	double vertexLinkDistanceSqr = std::numeric_limits<double>::epsilon();
-	int maxIterationCount;
-	double agressiveness;
-	bool enableSmartLink;
-	bool preserveBorderEdges;
-	bool preserveUVSeamEdges;
-	bool preserveUVFoldoverEdges;
+	double _vertex_link_distance_sqr = std::numeric_limits<double>::epsilon();
+	int _max_iteration_count;
+	double _agressiveness;
+	bool _enable_smart_link;
+	bool _preserve_border_dges;
+	bool _preserve_uv_seam_edges;
+	bool _preserve_uv_foldover_edges;
 };
 
 #endif

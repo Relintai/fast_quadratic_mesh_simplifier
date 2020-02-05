@@ -14,7 +14,6 @@ sources = [
 
     "register_types.cpp",
 
-    "mesh_simplifier.cpp",
     "fast_quadratic_mesh_simplifier.cpp",
 ]
 
