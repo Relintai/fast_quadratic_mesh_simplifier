@@ -532,9 +532,9 @@ int FastQuadraticMeshSimplifier::remove_vertex_pass(int startTrisCount, int targ
 			deleted1.resize(_mu_vertices[i1].tcount); // normals temporarily
 
 			// Don't remove if flipped
-			if (Flipped(p, i0, i1, _mu_vertices[i0], deleted0))
+			if (flipped(p, i0, i1, _mu_vertices[i0], deleted0))
 				continue;
-			if (Flipped(p, i1, i0, _mu_vertices[i1], deleted1))
+			if (flipped(p, i1, i0, _mu_vertices[i1], deleted1))
 				continue;
 
 			// Calculate the barycentric coordinates within the triangle
@@ -670,7 +670,7 @@ int FastQuadraticMeshSimplifier::update_triangles(int i0, int ia0, const MUVerte
 	return deletedTriangles;
 }
 
-bool FastQuadraticMeshSimplifier::Flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> &deleted) {
+bool FastQuadraticMeshSimplifier::flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> &deleted) {
 	int tcount = v0.tcount;
 
 	for (int k = 0; k < tcount; k++) {
