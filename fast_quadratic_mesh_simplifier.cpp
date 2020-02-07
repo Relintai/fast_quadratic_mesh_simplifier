@@ -25,16 +25,49 @@ SOFTWARE.
 
 */
 
-void FastQuadraticMeshSimplifier::initialize(Array arrays) {
-	//_mesher = mesher;
+#include "scene/resources/mesh.h"
+
+void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 /*
-	_vertices = mesher->get_vertices();
-	_normals = mesher->get_normals();
-	_colors = mesher->get_colors();
-	_uvs = mesher->get_uvs();
-	_uv2s = mesher->get_uv2s();
+		ARRAY_VERTEX = VisualServer::ARRAY_VERTEX,
+		ARRAY_NORMAL = VisualServer::ARRAY_NORMAL,
+		ARRAY_TANGENT = VisualServer::ARRAY_TANGENT,
+		ARRAY_COLOR = VisualServer::ARRAY_COLOR,
+		ARRAY_TEX_UV = VisualServer::ARRAY_TEX_UV,
+		ARRAY_TEX_UV2 = VisualServer::ARRAY_TEX_UV2,
+		ARRAY_BONES = VisualServer::ARRAY_BONES,
+		ARRAY_WEIGHTS = VisualServer::ARRAY_WEIGHTS,
+		ARRAY_INDEX = VisualServer::ARRAY_INDEX,
+		ARRAY_MAX = VisualServer::ARRAY_MAX
+
 	_indices = mesher->get_indices();
 */
+
+
+	if (ArrayMesh::ARRAY_VERTEX < arrays.size()) {
+		_vertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
+	}
+
+	if (ArrayMesh::ARRAY_NORMAL < arrays.size()) {
+		_normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
+	}
+
+	if (ArrayMesh::ARRAY_COLOR < arrays.size()) {
+		_colors = arrays.get(ArrayMesh::ARRAY_COLOR);
+	}
+
+	if (ArrayMesh::ARRAY_TEX_UV < arrays.size()) {
+		_uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
+	}
+
+	if (ArrayMesh::ARRAY_TEX_UV2 < arrays.size()) {
+		_uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
+	}
+
+	if (ArrayMesh::ARRAY_INDEX < arrays.size()) {
+		_indices = arrays.get(ArrayMesh::ARRAY_INDEX);
+	}
+
 	if ((_indices.size() % 3) != 0)
 		ERR_FAIL_MSG("The index array length must be a multiple of 3 in order to represent triangles.");
 
@@ -62,6 +95,21 @@ void FastQuadraticMeshSimplifier::refresh_vertices() {
 
 		_vertices[i] = Vector3(vert.p);
 	}
+}
+
+Array FastQuadraticMeshSimplifier::get_arrays() {
+	Array arr;
+
+	arr.resize(ArrayMesh::ARRAY_MAX);
+
+	arr.set(ArrayMesh::ARRAY_VERTEX, _vertices);
+	arr.set(ArrayMesh::ARRAY_NORMAL, _normals);
+	arr.set(ArrayMesh::ARRAY_COLOR, _colors);
+	arr.set(ArrayMesh::ARRAY_TEX_UV, _uvs);
+	arr.set(ArrayMesh::ARRAY_TEX_UV2, _uv2s);
+	arr.set(ArrayMesh::ARRAY_INDEX, _indices);
+
+	return arr;
 }
 
 void FastQuadraticMeshSimplifier::simplify_mesh(float quality) {
@@ -370,6 +418,7 @@ void FastQuadraticMeshSimplifier::update_references() {
 		int v0 = _mu_triangles[i].v0;
 		int v1 = _mu_triangles[i].v1;
 		int v2 = _mu_triangles[i].v2;
+
 		int start0 = _mu_vertices[v0].tstart;
 		int count0 = _mu_vertices[v0].tcount;
 		int start1 = _mu_vertices[v1].tstart;
@@ -745,4 +794,17 @@ FastQuadraticMeshSimplifier::FastQuadraticMeshSimplifier() {
 	_preserve_border_dges = false;
 	_preserve_uv_seam_edges = false;
 	_preserve_uv_foldover_edges = false;
+}
+
+void FastQuadraticMeshSimplifier::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("initialize", "arrays"), &FastQuadraticMeshSimplifier::initialize);
+	ClassDB::bind_method(D_METHOD("get_arrays"), &FastQuadraticMeshSimplifier::get_arrays);
+	ClassDB::bind_method(D_METHOD("simplify_mesh", "quality"), &FastQuadraticMeshSimplifier::simplify_mesh);
+	ClassDB::bind_method(D_METHOD("simplify_mesh_lossless"), &FastQuadraticMeshSimplifier::simplify_mesh_lossless);
+
+
+//	ClassDB::bind_method(D_METHOD("get_body_path"), &FastQuadraticMeshSimplifier::get_body_path);
+//	ClassDB::bind_method(D_METHOD("set_body_path", "value"), &FastQuadraticMeshSimplifier::set_body_path);
+//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "body_path"), "set_body_path", "get_body_path");
+
 }

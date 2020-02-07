@@ -36,13 +36,11 @@ SOFTWARE.
 #include "core/pool_vector.h"
 #include "core/resource.h"
 
-class VoxelMesher;
-
 class FastQuadraticMeshSimplifier : public Reference {
 	GDCLASS(FastQuadraticMeshSimplifier, Reference);
 
 public:
-	void initialize(Array arrays);
+	void initialize(const Array &arrays);
 	Array get_arrays();
 	void simplify_mesh(float quality);
 	void simplify_mesh_lossless();
@@ -65,6 +63,9 @@ public:
 	}
 
 	FastQuadraticMeshSimplifier();
+
+protected:
+	static void _bind_methods();
 
 private:
 	PoolVector<Vector3> _vertices;
