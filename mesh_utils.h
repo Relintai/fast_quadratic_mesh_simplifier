@@ -26,6 +26,8 @@ SOFTWARE.
 
 */
 
+#include "core/color.h"
+#include "core/math/vector2.h"
 #include "core/math/vector3.h"
 
 /// A symmetric matrix.
@@ -379,6 +381,12 @@ struct MUTriangle {
 
 struct MUVertex {
 	Vector3 p;
+	Vector3 normals;
+	Color colors;
+	Vector2 uvs;
+	Vector2 uv2s;
+	int indices;
+
 	int tstart;
 	int tcount;
 	SymmetricMatrix q;

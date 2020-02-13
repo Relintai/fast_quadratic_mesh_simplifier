@@ -68,11 +68,10 @@ protected:
 	static void _bind_methods();
 
 private:
-	PoolVector<Vector3> _vertices;
-	PoolVector<Vector3> _normals;
-	PoolVector<Color> _colors;
-	PoolVector<Vector2> _uvs;
-	PoolVector<Vector2> _uv2s;
+	bool _has_normals;
+	bool _has_colors;
+	bool _has_uvs;
+	bool _has_uv2s;
 	PoolVector<int> _indices;
 
 	PoolVector<MUTriangle> _mu_triangles;
