@@ -28,7 +28,7 @@ SOFTWARE.
 #include "scene/resources/mesh.h"
 
 void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
-	/*
+/*
 		ARRAY_VERTEX = VisualServer::ARRAY_VERTEX,
 		ARRAY_NORMAL = VisualServer::ARRAY_NORMAL,
 		ARRAY_TANGENT = VisualServer::ARRAY_TANGENT,
@@ -43,12 +43,30 @@ void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 	_indices = mesher->get_indices();
 */
 
-	PoolVector<Vector3> vertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
-	PoolVector<Vector3> normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
-	PoolVector<Color> colors = arrays.get(ArrayMesh::ARRAY_COLOR);
-	PoolVector<Vector2> uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
-	PoolVector<Vector2> uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
-	_indices = arrays.get(ArrayMesh::ARRAY_INDEX);
+
+	if (ArrayMesh::ARRAY_VERTEX < arrays.size()) {
+		_vertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
+	}
+
+	if (ArrayMesh::ARRAY_NORMAL < arrays.size()) {
+		_normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
+	}
+
+	if (ArrayMesh::ARRAY_COLOR < arrays.size()) {
+		_colors = arrays.get(ArrayMesh::ARRAY_COLOR);
+	}
+
+	if (ArrayMesh::ARRAY_TEX_UV < arrays.size()) {
+		_uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
+	}
+
+	if (ArrayMesh::ARRAY_TEX_UV2 < arrays.size()) {
+		_uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
+	}
+
+	if (ArrayMesh::ARRAY_INDEX < arrays.size()) {
+		_indices = arrays.get(ArrayMesh::ARRAY_INDEX);
+	}
 
 	if ((_indices.size() % 3) != 0)
 		ERR_FAIL_MSG("The index array length must be a multiple of 3 in order to represent triangles.");
@@ -64,34 +82,33 @@ void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 		_mu_triangles[i] = MUTriangle(v0, v1, v2, 0);
 	}
 
-	_mu_vertices.resize(vertices.size());
-	for (int i = 0; i < vertices.size(); ++i) {
-		_mu_vertices[i] = MUVertex(vertices[i]);
+	_mu_vertices.resize(_vertices.size());
+	for (int i = 0; i < _vertices.size(); ++i) {
+		_mu_vertices[i] = MUVertex(_vertices[i]);
 	}
 }
 
 void FastQuadraticMeshSimplifier::refresh_vertices() {
-	/*
 	_vertices.resize(_mu_vertices.size());
 	for (int i = 0; i < _mu_vertices.size(); ++i) {
 		MUVertex vert = _mu_vertices[i];
 
 		_vertices[i] = Vector3(vert.p);
-	}*/
+	}
 }
 
 Array FastQuadraticMeshSimplifier::get_arrays() {
 	Array arr;
 
 	arr.resize(ArrayMesh::ARRAY_MAX);
-	/*
+
 	arr.set(ArrayMesh::ARRAY_VERTEX, _vertices);
 	arr.set(ArrayMesh::ARRAY_NORMAL, _normals);
 	arr.set(ArrayMesh::ARRAY_COLOR, _colors);
 	arr.set(ArrayMesh::ARRAY_TEX_UV, _uvs);
 	arr.set(ArrayMesh::ARRAY_TEX_UV2, _uv2s);
 	arr.set(ArrayMesh::ARRAY_INDEX, _indices);
-*/
+
 	return arr;
 }
 
@@ -478,14 +495,13 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 
 			if (dst != i) {
 				_mu_vertices[dst].p = vert.p;
-				/*
+
 				if (_normals.size() > 0) _normals[dst] = _normals[i];
 
 				if (_colors.size() > 0) _colors.set(dst, _colors[i]);
 				if (_uvs.size() > 0) _uvs.set(dst, _uvs[i]);
 				if (_uv2s.size() > 0) _uv2s.set(dst, _uv2s[i]);
 				if (_indices.size() > 0) _indices.set(dst, _indices[i]);
-				*/
 			}
 
 			++dst;
@@ -501,18 +517,22 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 	}
 
 	//vertexCount = dst;
-	//_vertices.resize(dst);
+	_vertices.resize(dst);
+	if (_normals.size() > 0) _normals.resize(dst);
+	if (_colors.size() > 0) _colors.resize(dst);
+	if (_uvs.size() > 0) _uvs.resize(dst);
+	if (_uv2s.size() > 0) _uv2s.resize(dst);
+	if (_indices.size() > 0) _indices.resize(dst);
 }
 
 bool FastQuadraticMeshSimplifier::are_uvs_the_same(int channel, int indexA, int indexB) {
-	/*
 	if (_uv2s.size() > 0) {
 		//Vector2 vertUV = _uv2s[channel];
 
 		Vector2 uvA = _uv2s[indexA];
 		Vector2 uvB = _uv2s[indexB];
 		return uvA == uvB;
-	}*/
+	}
 
 	return false;
 }
@@ -750,8 +770,6 @@ Vector3 FastQuadraticMeshSimplifier::calculate_barycentric_coords(Vector3 const 
 }
 
 void FastQuadraticMeshSimplifier::interpolate_vertex_attributes(int dst, int i0, int i1, int i2, Vector3 &barycentricCoord) {
-
-	/*
 	if (_normals.size() > 0) {
 		_normals[dst] = (_normals[i0] * barycentricCoord.x) + (_normals[i1] * barycentricCoord.y) + (_normals[i2] * barycentricCoord.z).normalized();
 	}
@@ -766,15 +784,10 @@ void FastQuadraticMeshSimplifier::interpolate_vertex_attributes(int dst, int i0,
 
 	if (_colors.size() > 0) {
 		_colors[dst] = (_colors[i0] * barycentricCoord.x) + (_colors[i1] * barycentricCoord.y) + (_colors[i2] * barycentricCoord.z);
-	}*/
+	}
 }
 
 FastQuadraticMeshSimplifier::FastQuadraticMeshSimplifier() {
-	_has_normals = false;
-	_has_colors = false;
-	_has_uvs = false;
-	_has_uv2s = false;
-
 	_max_iteration_count = 100;
 	_agressiveness = 7.0;
 	_enable_smart_link = true;
@@ -789,7 +802,9 @@ void FastQuadraticMeshSimplifier::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("simplify_mesh", "quality"), &FastQuadraticMeshSimplifier::simplify_mesh);
 	ClassDB::bind_method(D_METHOD("simplify_mesh_lossless"), &FastQuadraticMeshSimplifier::simplify_mesh_lossless);
 
-	//	ClassDB::bind_method(D_METHOD("get_body_path"), &FastQuadraticMeshSimplifier::get_body_path);
-	//	ClassDB::bind_method(D_METHOD("set_body_path", "value"), &FastQuadraticMeshSimplifier::set_body_path);
-	//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "body_path"), "set_body_path", "get_body_path");
+
+//	ClassDB::bind_method(D_METHOD("get_body_path"), &FastQuadraticMeshSimplifier::get_body_path);
+//	ClassDB::bind_method(D_METHOD("set_body_path", "value"), &FastQuadraticMeshSimplifier::set_body_path);
+//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "body_path"), "set_body_path", "get_body_path");
+
 }
