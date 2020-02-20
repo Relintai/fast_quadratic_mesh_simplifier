@@ -33,31 +33,31 @@ void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 	PoolVector<Vector3> vertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
 	_vertices.resize(vertices.size());
 	for (int i = 0; i < vertices.size(); ++i) {
-		_vertices[i] = vertices[i];
+		_vertices.set(i, vertices[i]);
 	}
 
 	PoolVector<Vector3> normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
 	_normals.resize(normals.size());
 	for (int i = 0; i < normals.size(); ++i) {
-		_normals[i] = normals[i];
+		_normals.set(i, normals[i]);
 	}
 
 	PoolVector<Color> colors = arrays.get(ArrayMesh::ARRAY_COLOR);
 	_colors.resize(colors.size());
 	for (int i = 0; i < colors.size(); ++i) {
-		_colors[i] = colors[i];
+		_colors.set(i, colors[i]);
 	}
 
 	PoolVector<Vector2> uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
 	_uvs.resize(uvs.size());
 	for (int i = 0; i < uvs.size(); ++i) {
-		_uvs[i] = uvs[i];
+		_uvs.set(i, uvs[i]);
 	}
 
 	PoolVector<Vector2> uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
 	_uv2s.resize(uv2s.size());
 	for (int i = 0; i < uv2s.size(); ++i) {
-		_uv2s[i] = uv2s[i];
+		_uv2s.set(i, uv2s[i]);
 	}
 
 	PoolVector<int> indices = arrays.get(ArrayMesh::ARRAY_INDEX);
@@ -77,12 +77,12 @@ void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 		int v0 = _indices[offset];
 		int v1 = _indices[offset + 1];
 		int v2 = _indices[offset + 2];
-		_mu_triangles[i] = MUTriangle(v0, v1, v2, 0);
+		_mu_triangles.set(i, MUTriangle(v0, v1, v2, 0));
 	}
 
 	_mu_vertices.resize(_vertices.size());
 	for (int i = 0; i < _vertices.size(); ++i) {
-		_mu_vertices[i] = MUVertex(_vertices[i]);
+		_mu_vertices.set(i, MUVertex(_vertices[i]));
 	}
 }
 
@@ -91,7 +91,7 @@ void FastQuadraticMeshSimplifier::refresh_vertices() {
 	for (int i = 0; i < _mu_vertices.size(); ++i) {
 		MUVertex vert = _mu_vertices[i];
 
-		_vertices[i] = Vector3(vert.p);
+		_vertices.set(i, Vector3(vert.p));
 	}
 }
 
@@ -133,7 +133,11 @@ void FastQuadraticMeshSimplifier::simplify_mesh(float quality) {
 
 		// Clear dirty flag
 		for (int i = 0; i < _mu_triangles.size(); ++i) {
-			_mu_triangles[i].set_dirty(false);
+			MUTriangle t = _mu_triangles[i];
+
+			t.dirty = false;
+
+			_mu_triangles.set(i, t);
 		}
 
 		// All triangles with edges below the threshold will be removed
@@ -142,15 +146,15 @@ void FastQuadraticMeshSimplifier::simplify_mesh(float quality) {
 		// If it does not, try to adjust the 3 parameters
 		double threshold = 0.000000001 * Math::pow(iteration + 3, _agressiveness);
 
-		//print_verbose("iteration {0} - triangles {1} threshold {2}", iteration, (startTrisCount - deletedTris), threshold);
+		print_error("iteration " + String::num(iteration) + " - triangles " + String::num((startTrisCount - deletedTris)) + " threshold " + String::num(threshold));
 
 		// Remove vertices & mark deleted triangles
-		deletedTris = remove_vertex_pass(startTrisCount, targetTrisCount, threshold, deleted0, deleted1, deletedTris);
+		remove_vertex_pass(startTrisCount, targetTrisCount, threshold, &deleted0, &deleted1, &deletedTris);
 	}
 
 	compact_mesh();
 
-	//print_verbose("Finished simplification with triangle count {0}", _mu_triangles.size());
+	print_error("Finished simplification with triangle count " + String::num(_mu_triangles.size()));
 }
 
 //Mesh Simplification
@@ -168,7 +172,11 @@ void FastQuadraticMeshSimplifier::simplify_mesh_lossless() {
 
 		// Clear dirty flag
 		for (int i = 0; i < _mu_triangles.size(); ++i) {
-			_mu_triangles[i].set_dirty(false);
+			MUTriangle t = _mu_triangles[i];
+
+			t.dirty = false;
+
+			_mu_triangles.set(i, t);
 		}
 
 		// All triangles with edges below the threshold will be removed
@@ -180,7 +188,7 @@ void FastQuadraticMeshSimplifier::simplify_mesh_lossless() {
 		//Debug.LogFormat("Lossless iteration {0} - triangles {1}", iteration, triangleCount);
 
 		// Remove vertices & mark deleted triangles
-		deletedTris = remove_vertex_pass(startTrisCount, 0, threshold, deleted0, deleted1, deletedTris);
+		remove_vertex_pass(startTrisCount, 0, threshold, &deleted0, &deleted1, &deletedTris);
 
 		if (deletedTris <= 0)
 			break;
@@ -219,13 +227,17 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 
 		int vsize = 0;
 		for (int i = 0; i < _mu_vertices.size(); i++) {
-			_mu_vertices[i].set_border_edge(false);
-			_mu_vertices[i].set_uv_seam_edge(false);
-			_mu_vertices[i].set_uv_foldover_edge(false);
+			MUVertex v = _mu_vertices[i];
+
+			v.border_edge = false;
+			v.uv_seam_edge = false;
+			v.uv_foldover_edge = false;
+
+			_mu_vertices.set(i, v);
 		}
 
-		int ofs;
-		int id;
+		int ofs = 0;
+		int id = 0;
 		int borderVertexCount = 0;
 		double borderMinX = std::numeric_limits<double>::max();
 		double borderMaxX = std::numeric_limits<double>::min();
@@ -239,9 +251,12 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 
 			for (int j = 0; j < tcount; j++) {
 				int tid = _mu_refs[tstart + j].tid;
+				MUTriangle t = _mu_triangles[tid];
+
 				for (int k = 0; k < 3; k++) {
 					ofs = 0;
-					id = _mu_triangles[tid].get(k);
+					id = t.get(k);
+
 					while (ofs < vsize) {
 						if (vids[ofs] == id)
 							break;
@@ -262,15 +277,20 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 			for (int j = 0; j < vsize; j++) {
 				if (vcount[j] == 1) {
 					id = vids[j];
-					_mu_vertices[id].set_border_edge(true);
+
+					MUVertex v = _mu_vertices[id];
+
+					v.border_edge = true;
+					_mu_vertices.set(id, v);
+
 					++borderVertexCount;
 
 					if (_enable_smart_link) {
-						if (_mu_vertices[id].p.x < borderMinX) {
-							borderMinX = _mu_vertices[id].p.x;
+						if (v.p.x < borderMinX) {
+							borderMinX = v.p.x;
 						}
-						if (_mu_vertices[id].p.x > borderMaxX) {
-							borderMaxX = _mu_vertices[id].p.x;
+						if (v.p.x > borderMaxX) {
+							borderMaxX = v.p.x;
 						}
 					}
 				}
@@ -284,7 +304,7 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 			int borderIndexCount = 0;
 			double borderAreaWidth = borderMaxX - borderMinX;
 			for (int i = 0; i < _mu_vertices.size(); i++) {
-				if (_mu_vertices[i].borderEdge) {
+				if (_mu_vertices[i].border_edge) {
 					int vertexHash = (int)(((((_mu_vertices[i].p.x - borderMinX) / borderAreaWidth) * 2.0) - 1.0) * std::numeric_limits<int>::max());
 					borderVertices.set(borderIndexCount, BorderVertex(i, vertexHash));
 					++borderIndexCount;
@@ -320,22 +340,33 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 
 					if (sqrMagnitude <= _vertex_link_distance_sqr) {
 						borderVertices.get(j).set_index(-1); // NOTE: This makes sure that the "other" vertex is not processed again
-						_mu_vertices[myIndex].set_border_edge(false);
-						_mu_vertices[otherIndex].set_border_edge(false);
+
+						MUVertex miv = _mu_vertices[myIndex];
+						MUVertex oiv = _mu_vertices[otherIndex];
+
+						miv.border_edge = false;
+						oiv.border_edge = false;
 
 						if (are_uvs_the_same(0, myIndex, otherIndex)) {
-							_mu_vertices[myIndex].set_uv_foldover_edge(true);
-							_mu_vertices[otherIndex].set_uv_foldover_edge(true);
+							miv.uv_foldover_edge = true;
+							oiv.uv_foldover_edge = true;
 						} else {
-							_mu_vertices[myIndex].set_uv_seam_edge(true);
-							_mu_vertices[otherIndex].set_uv_seam_edge(true);
+							miv.uv_seam_edge = true;
+							oiv.uv_seam_edge = true;
 						}
 
-						int otherTriangleCount = _mu_vertices[otherIndex].tcount;
-						int otherTriangleStart = _mu_vertices[otherIndex].tstart;
+						_mu_vertices.set(myIndex, miv);
+						_mu_vertices.set(otherIndex, oiv);
+
+						int otherTriangleCount = oiv.tcount;
+						int otherTriangleStart = oiv.tstart;
+
 						for (int k = 0; k < otherTriangleCount; k++) {
 							MURef r = _mu_refs[otherTriangleStart + k];
-							_mu_triangles[r.tid].set(myIndex, r.tvertex);
+							MUTriangle t = _mu_triangles[r.tid];
+							t.set(r.tvertex, myIndex);
+
+							_mu_triangles.set(r.tid, t);
 						}
 					}
 				}
@@ -382,10 +413,11 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 		for (int i = 0; i < _mu_triangles.size(); ++i) {
 			// Calc Edge Error
 			MUTriangle triangle = _mu_triangles[i];
-			_mu_triangles[i].set_err0(calculate_error(_mu_vertices[triangle.v0], _mu_vertices[triangle.v1], &dummy));
-			_mu_triangles[i].set_err1(calculate_error(_mu_vertices[triangle.v1], _mu_vertices[triangle.v2], &dummy));
-			_mu_triangles[i].set_err2(calculate_error(_mu_vertices[triangle.v2], _mu_vertices[triangle.v0], &dummy));
-			_mu_triangles[i].set_err3(FastQuadraticMeshSimplifier::min3(_mu_triangles[i].err0, _mu_triangles[i].err1, _mu_triangles[i].err2));
+			triangle.err0 = calculate_error(_mu_vertices[triangle.v0], _mu_vertices[triangle.v1], &dummy);
+			triangle.err1 = calculate_error(_mu_vertices[triangle.v1], _mu_vertices[triangle.v2], &dummy);
+			triangle.err2 = calculate_error(_mu_vertices[triangle.v2], _mu_vertices[triangle.v0], &dummy);
+			triangle.err3 = FastQuadraticMeshSimplifier::min3(triangle.err0, triangle.err1, triangle.err2);
+			_mu_triangles.set(i, triangle);
 		}
 	}
 }
@@ -393,44 +425,76 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 void FastQuadraticMeshSimplifier::update_references() {
 	// Init Reference ID list
 	for (int i = 0; i < _mu_vertices.size(); i++) {
-		_mu_vertices[i].set_tstart(0);
-		_mu_vertices[i].set_tcount(0);
+		MUVertex v = _mu_vertices[i];
+
+		v.tstart = 0;
+		v.tcount = 0;
+
+		_mu_vertices.set(i, v);
 	}
 
 	for (int i = 0; i < _mu_triangles.size(); i++) {
-		_mu_vertices[_mu_triangles[i].v0].set_tcount(_mu_vertices[_mu_triangles[i].v0].tcount + 1);
-		_mu_vertices[_mu_triangles[i].v1].set_tcount(_mu_vertices[_mu_triangles[i].v1].tcount + 1);
-		_mu_vertices[_mu_triangles[i].v2].set_tcount(_mu_vertices[_mu_triangles[i].v2].tcount + 1);
+
+		MUTriangle t = _mu_triangles[i];
+
+		MUVertex v = _mu_vertices[t.v0];
+		v.tcount++;
+		_mu_vertices.set(t.v0, v);
+
+		v = _mu_vertices[t.v1];
+		v.tcount++;
+		_mu_vertices.set(t.v1, v);
+
+		v = _mu_vertices[t.v2];
+		v.tcount++;
+		_mu_vertices.set(t.v2, v);
 	}
 
 	int tstart = 0;
 	for (int i = 0; i < _mu_vertices.size(); i++) {
-		_mu_vertices[i].set_tstart(tstart);
-		tstart += _mu_vertices[i].tcount;
-		_mu_vertices[i].set_tcount(0);
+		MUVertex v = _mu_vertices[i];
+
+		v.tstart = tstart;
+		tstart += v.tcount;
+		v.tcount = 0;
+		_mu_vertices.set(i, v);
 	}
 
 	// Write References
 	_mu_refs.resize(tstart);
 	for (int i = 0; i < _mu_triangles.size(); i++) {
-		int v0 = _mu_triangles[i].v0;
-		int v1 = _mu_triangles[i].v1;
-		int v2 = _mu_triangles[i].v2;
+		MUTriangle t = _mu_triangles[i];
 
-		int start0 = _mu_vertices[v0].tstart;
-		int count0 = _mu_vertices[v0].tcount;
-		int start1 = _mu_vertices[v1].tstart;
-		int count1 = _mu_vertices[v1].tcount;
-		int start2 = _mu_vertices[v2].tstart;
-		int count2 = _mu_vertices[v2].tcount;
+		int start0 = _mu_vertices[t.v0].tstart;
+		int count0 = _mu_vertices[t.v0].tcount;
+		int start1 = _mu_vertices[t.v1].tstart;
+		int count1 = _mu_vertices[t.v1].tcount;
+		int start2 = _mu_vertices[t.v2].tstart;
+		int count2 = _mu_vertices[t.v2].tcount;
 
-		_mu_refs[start0 + count0].Set(i, 0);
-		_mu_refs[start1 + count1].Set(i, 1);
-		_mu_refs[start2 + count2].Set(i, 2);
+		MURef ref = _mu_refs[start0 + count0];
+		ref.Set(i, 0);
+		_mu_refs.set(start0 + count0, ref);
 
-		_mu_vertices[v0].set_tcount(_mu_vertices[v0].tcount + 1);
-		_mu_vertices[v1].set_tcount(_mu_vertices[v1].tcount + 1);
-		_mu_vertices[v2].set_tcount(_mu_vertices[v2].tcount + 1);
+		ref = _mu_refs[start1 + count1];
+		ref.Set(i, 1);
+		_mu_refs.set(start1 + count1, ref);
+
+		ref = _mu_refs[start2 + count2];
+		ref.Set(i, 2);
+		_mu_refs.set(start2 + count2, ref);
+
+		MUVertex v = _mu_vertices[t.v0];
+		++v.tcount;
+		_mu_vertices.set(t.v0, v);
+
+		v = _mu_vertices[t.v1];
+		++v.tcount;
+		_mu_vertices.set(t.v1, v);
+
+		v = _mu_vertices[t.v2];
+		++v.tcount;
+		_mu_vertices.set(t.v2, v);
 	}
 }
 
@@ -441,7 +505,9 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 	int dst = 0;
 
 	for (int i = 0; i < _mu_vertices.size(); i++) {
-		_mu_vertices[i].set_tcount(0);
+		MUVertex v = _mu_vertices.get(i);
+		v.tcount = 0;
+		_mu_vertices.set(i, v);
 	}
 
 	for (int i = 0; i < _mu_triangles.size(); i++) {
@@ -451,7 +517,11 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 			if (triangle.va0 != triangle.v0) {
 				int iDest = triangle.va0;
 				int iSrc = triangle.v0;
-				_mu_vertices[iDest].p = _mu_vertices[iSrc].p;
+
+				MUVertex d = _mu_vertices[iDest];
+				MUVertex s = _mu_vertices[iSrc];
+				d.p = s.p;
+				_mu_vertices.set(iDest, d);
 
 				triangle.v0 = triangle.va0;
 			}
@@ -459,7 +529,11 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 			if (triangle.va1 != triangle.v1) {
 				int iDest = triangle.va1;
 				int iSrc = triangle.v1;
-				_mu_vertices[iDest].p = _mu_vertices[iSrc].p;
+
+				MUVertex d = _mu_vertices[iDest];
+				MUVertex s = _mu_vertices[iSrc];
+				d.p = s.p;
+				_mu_vertices.set(iDest, d);
 
 				triangle.v1 = triangle.va1;
 			}
@@ -467,17 +541,29 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 			if (triangle.va2 != triangle.v2) {
 				int iDest = triangle.va2;
 				int iSrc = triangle.v2;
-				_mu_vertices[iDest].p = _mu_vertices[iSrc].p;
+
+				MUVertex d = _mu_vertices[iDest];
+				MUVertex s = _mu_vertices[iSrc];
+				d.p = s.p;
+				_mu_vertices.set(iDest, d);
 
 				triangle.v2 = triangle.va2;
 			}
 
 			int newTriangleIndex = ++dst;
-			_mu_triangles[newTriangleIndex] = triangle;
+			_mu_triangles.set(newTriangleIndex, triangle);
 
-			_mu_vertices[triangle.v0].set_tcount(1);
-			_mu_vertices[triangle.v1].set_tcount(1);
-			_mu_vertices[triangle.v2].set_tcount(1);
+			MUVertex v = _mu_vertices[triangle.v0];
+			v.tcount = 1;
+			_mu_vertices.set(triangle.v0, v);
+
+			v = _mu_vertices[triangle.v1];
+			v.tcount = 1;
+			_mu_vertices.set(triangle.v1, v);
+
+			v = _mu_vertices[triangle.v2];
+			v.tcount = 1;
+			_mu_vertices.set(triangle.v2, v);
 		}
 	}
 
@@ -494,7 +580,7 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 			if (dst != i) {
 				_mu_vertices[dst].p = vert.p;
 
-				if (_normals.size() > 0) _normals[dst] = _normals[i];
+				if (_normals.size() > 0) _normals.set(dst, _normals[i]);
 
 				if (_colors.size() > 0) _colors.set(dst, _colors[i]);
 				if (_uvs.size() > 0) _uvs.set(dst, _uvs[i]);
@@ -536,62 +622,67 @@ bool FastQuadraticMeshSimplifier::are_uvs_the_same(int channel, int indexA, int 
 }
 
 /// Remove vertices and mark deleted triangles
-int FastQuadraticMeshSimplifier::remove_vertex_pass(int startTrisCount, int targetTrisCount, double threshold, PoolVector<bool> &deleted0, PoolVector<bool> &deleted1, int deletedTris) {
+void FastQuadraticMeshSimplifier::remove_vertex_pass(int startTrisCount, int targetTrisCount, double threshold, PoolVector<bool> *deleted0, PoolVector<bool> *deleted1, int *deletedTris) {
 	Vector3 p;
 	Vector3 barycentricCoord;
 	for (int tid = 0; tid < _mu_triangles.size(); tid++) {
-		if (_mu_triangles[tid].dirty || _mu_triangles[tid].deleted || _mu_triangles[tid].err3 > threshold)
+		MUTriangle t = _mu_triangles[tid];
+
+		if (t.dirty || t.deleted || t.err3 > threshold)
 			continue;
 
-		Vector3 errors = _mu_triangles[tid].GetErrors();
-		Vector3 attrib_indices = _mu_triangles[tid].GetAttributeIndices();
+		Vector3 errors = t.GetErrors();
+		Vector3 attrib_indices = t.GetAttributeIndices();
 		for (int edgeIndex = 0; edgeIndex < 3; edgeIndex++) {
 			if (errors[edgeIndex] > threshold)
 				continue;
 
 			int nextEdgeIndex = ((edgeIndex + 1) % 3);
-			int i0 = _mu_triangles[tid].get(edgeIndex);
-			int i1 = _mu_triangles[tid].get(nextEdgeIndex);
+			int i0 = t.get(edgeIndex);
+			int i1 = t.get(nextEdgeIndex);
+
+			MUVertex v0 = _mu_vertices[i0];
+			MUVertex v1 = _mu_vertices[i1];
 
 			// Border check
-			if (_mu_vertices[i0].borderEdge != _mu_vertices[i1].borderEdge)
+			if (v0.border_edge != v1.border_edge)
 				continue;
 
 			// Seam check
-			else if (_mu_vertices[i0].uvSeamEdge != _mu_vertices[i1].uvSeamEdge)
+			else if (v0.uv_seam_edge != v1.uv_seam_edge)
 				continue;
 			// Foldover check
-			else if (_mu_vertices[i0].uvFoldoverEdge != _mu_vertices[i1].uvFoldoverEdge)
+			else if (v0.uv_foldover_edge != v1.uv_foldover_edge)
 				continue;
 			// If borders should be preserved
-			else if (_preserve_border_dges && _mu_vertices[i0].borderEdge)
+			else if (_preserve_border_dges && v0.border_edge)
 				continue;
 			// If seams should be preserved
-			else if (_preserve_uv_seam_edges && _mu_vertices[i0].uvSeamEdge)
+			else if (_preserve_uv_seam_edges && v0.uv_seam_edge)
 				continue;
 			// If foldovers should be preserved
-			else if (_preserve_uv_foldover_edges && _mu_vertices[i0].uvFoldoverEdge)
+			else if (_preserve_uv_foldover_edges && v0.uv_foldover_edge)
 				continue;
 
 			// Compute vertex to collapse to
-			calculate_error(_mu_vertices[i0], _mu_vertices[i1], &p);
-			deleted0.resize(_mu_vertices[i0].tcount); // normals temporarily
-			deleted1.resize(_mu_vertices[i1].tcount); // normals temporarily
+			calculate_error(v0, v1, &p);
+			deleted0->resize(v0.tcount); // normals temporarily
+			deleted1->resize(v1.tcount); // normals temporarily
 
 			// Don't remove if flipped
-			if (flipped(p, i0, i1, _mu_vertices[i0], deleted0))
+			if (flipped(p, i0, i1, v0, deleted0))
 				continue;
-			if (flipped(p, i1, i0, _mu_vertices[i1], deleted1))
+			if (flipped(p, i1, i0, v1, deleted1))
 				continue;
 
 			// Calculate the barycentric coordinates within the triangle
 			int nextNextEdgeIndex = ((edgeIndex + 2) % 3);
-			int i2 = _mu_triangles[tid].get(nextNextEdgeIndex);
-			barycentricCoord = calculate_barycentric_coords(p, _mu_vertices[i0].p, _mu_vertices[i1].p, _mu_vertices[i2].p);
+			int i2 = t.get(nextNextEdgeIndex);
+			barycentricCoord = calculate_barycentric_coords(p, v0.p, v1.p, _mu_vertices[i2].p);
 
 			// Not flipped, so remove edge
-			_mu_vertices[i0].p = p;
-			_mu_vertices[i0].q += _mu_vertices[i1].q;
+			v0.p = p;
+			v0.q += v1.q;
 
 			// Interpolate the vertex attributes
 			int ia0 = attrib_indices[edgeIndex];
@@ -599,38 +690,43 @@ int FastQuadraticMeshSimplifier::remove_vertex_pass(int startTrisCount, int targ
 			int ia2 = attrib_indices[nextNextEdgeIndex];
 			interpolate_vertex_attributes(ia0, ia0, ia1, ia2, barycentricCoord);
 
-			if (_mu_vertices[i0].uvSeamEdge) {
+			if (v0.uv_seam_edge) {
 				ia0 = -1;
 			}
 
 			int tstart = _mu_refs.size();
-			deletedTris = update_triangles(i0, ia0, _mu_vertices[i0], deleted0, deletedTris);
-			deletedTris = update_triangles(i0, ia0, _mu_vertices[i1], deleted1, deletedTris);
+			update_triangles(i0, ia0, v0, deleted0, deletedTris);
+			update_triangles(i0, ia0, v1, deleted1, deletedTris);
 
 			int tcount = _mu_refs.size() - tstart;
-			if (tcount <= _mu_vertices[i0].tcount) {
+			if (tcount <= v0.tcount) {
 				// save ram
 				if (tcount > 0) {
-					int dests = _mu_vertices[i0].tstart;
+					int dests = v0.tstart;
 					for (int v = 0; v < tcount; ++v) {
-						_mu_refs[v + tstart] = _mu_refs[v + dests];
+						_mu_refs.set(v + tstart, _mu_refs[v + dests]);
 					}
 				}
 			} else {
 				// append
-				_mu_vertices[i0].set_tstart(tstart);
+				//MUVertex v = _mu_vertices[i0];
+				v0.tstart = tstart;
+				//_mu_vertices.set(i0, v0);
 			}
 
-			_mu_vertices[i0].set_tcount(tcount);
+			//MUVertex v = _mu_vertices[i0];
+			v0.tcount = tcount;
+
+			_mu_vertices.set(i0, v0);
 			break;
 		}
 
 		// Check if we are already done
-		if ((startTrisCount - deletedTris) <= targetTrisCount)
+		if ((startTrisCount - (*deletedTris)) <= targetTrisCount)
 			break;
 	}
 
-	return deletedTris;
+	//return deletedTris;
 }
 
 double FastQuadraticMeshSimplifier::vertex_error(SymmetricMatrix q, double x, double y, double z) {
@@ -640,7 +736,7 @@ double FastQuadraticMeshSimplifier::vertex_error(SymmetricMatrix q, double x, do
 double FastQuadraticMeshSimplifier::calculate_error(MUVertex vert0, MUVertex vert1, Vector3 *result) {
 	// compute interpolated vertex
 	SymmetricMatrix q = (vert0.q + vert1.q);
-	bool borderEdge = (vert0.borderEdge & vert1.borderEdge);
+	bool borderEdge = (vert0.border_edge & vert1.border_edge);
 	double error = 0.0;
 	double det = q.Determinant1();
 	if (det != 0.0 && !borderEdge) {
@@ -681,9 +777,8 @@ double FastQuadraticMeshSimplifier::calculate_error(MUVertex vert0, MUVertex ver
 	return error;
 }
 
-int FastQuadraticMeshSimplifier::update_triangles(int i0, int ia0, const MUVertex &v, PoolVector<bool> &deleted, int p_deletedTriangles) {
+void FastQuadraticMeshSimplifier::update_triangles(int i0, int ia0, const MUVertex &v, PoolVector<bool> *deleted, int *deletedTriangles) {
 	Vector3 p;
-	int deletedTriangles = p_deletedTriangles;
 	int tcount = v.tcount;
 
 	for (int k = 0; k < tcount; k++) {
@@ -693,9 +788,14 @@ int FastQuadraticMeshSimplifier::update_triangles(int i0, int ia0, const MUVerte
 		if (t.deleted)
 			continue;
 
-		if (deleted[k]) {
-			_mu_triangles[tid].set_deleted(true);
-			++deletedTriangles;
+		if (deleted->get(k)) {
+			MUTriangle t2 = _mu_triangles[tid];
+
+			t2.deleted = true;
+
+			_mu_triangles.set(tid, t2);
+
+			++(*deletedTriangles);
 			continue;
 		}
 
@@ -714,22 +814,24 @@ int FastQuadraticMeshSimplifier::update_triangles(int i0, int ia0, const MUVerte
 		_mu_refs.push_back(r);
 	}
 
-	return deletedTriangles;
+	//return deletedTriangles;
 }
 
-bool FastQuadraticMeshSimplifier::flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> &deleted) {
+bool FastQuadraticMeshSimplifier::flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> *deleted) {
 	int tcount = v0.tcount;
 
 	for (int k = 0; k < tcount; k++) {
 		MURef r = _mu_refs[v0.tstart + k];
+		MUTriangle t = _mu_triangles[r.tid];
+
 		if (_mu_triangles[r.tid].deleted)
 			continue;
 
 		int s = r.tvertex;
-		int id1 = _mu_triangles[r.tid].get((s + 1) % 3);
-		int id2 = _mu_triangles[r.tid].get((s + 2) % 3);
+		int id1 = t.get((s + 1) % 3);
+		int id2 = t.get((s + 2) % 3);
 		if (id1 == i1 || id2 == i1) {
-			deleted.set(k, true);
+			deleted->set(k, true);
 			continue;
 		}
 
@@ -743,7 +845,7 @@ bool FastQuadraticMeshSimplifier::flipped(const Vector3 &p, int i0, int i1, cons
 
 		Vector3 n = d1.cross(d2);
 		n.normalize();
-		deleted.set(k, false);
+		deleted->set(k, false);
 		dot = n.dot(_mu_triangles[r.tid].n);
 		if (dot < 0.2)
 			return true;

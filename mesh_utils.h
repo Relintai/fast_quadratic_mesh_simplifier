@@ -288,30 +288,6 @@ struct MUTriangle {
 		}
 	}
 
-	_FORCE_INLINE_ void set_dirty(bool p_value) {
-		dirty = p_value;
-	}
-
-	_FORCE_INLINE_ void set_err0(double p_value) {
-		err0 = p_value;
-	}
-
-	_FORCE_INLINE_ void set_err1(double p_value) {
-		err1 = p_value;
-	}
-
-	_FORCE_INLINE_ void set_err2(double p_value) {
-		err2 = p_value;
-	}
-
-	_FORCE_INLINE_ void set_err3(double p_value) {
-		err3 = p_value;
-	}
-
-	_FORCE_INLINE_ void set_deleted(double p_value) {
-		deleted = p_value;
-	}
-
 	MUTriangle() {
 		v0 = 0;
 		v1 = 0;
@@ -382,54 +358,34 @@ struct MUVertex {
 	int tstart;
 	int tcount;
 	SymmetricMatrix q;
-	bool borderEdge;
-	bool uvSeamEdge;
-	bool uvFoldoverEdge;
-
-	_FORCE_INLINE_ void set_tstart(int p_value) {
-		tstart = p_value;
-	}
-
-	_FORCE_INLINE_ void set_tcount(int p_value) {
-		tcount = p_value;
-	}
-
-	_FORCE_INLINE_ void set_border_edge(bool p_value) {
-		borderEdge = p_value;
-	}
-
-	_FORCE_INLINE_ void set_uv_seam_edge(bool p_value) {
-		uvSeamEdge = p_value;
-	}
-
-	_FORCE_INLINE_ void set_uv_foldover_edge(bool p_value) {
-		uvFoldoverEdge = p_value;
-	}
+	bool border_edge;
+	bool uv_seam_edge;
+	bool uv_foldover_edge;
 
 	MUVertex() {
 		tstart = 0;
 		tcount = 0;
-		borderEdge = true;
-		uvSeamEdge = false;
-		uvFoldoverEdge = false;
+		border_edge = true;
+		uv_seam_edge = false;
+		uv_foldover_edge = false;
 	}
 
 	MUVertex(float x, float y, float z) {
 		p = Vector3(x, y, z);
 		tstart = 0;
 		tcount = 0;
-		borderEdge = true;
-		uvSeamEdge = false;
-		uvFoldoverEdge = false;
+		border_edge = true;
+		uv_seam_edge = false;
+		uv_foldover_edge = false;
 	}
 
 	MUVertex(Vector3 point) {
 		p = point;
 		tstart = 0;
 		tcount = 0;
-		borderEdge = true;
-		uvSeamEdge = false;
-		uvFoldoverEdge = false;
+		border_edge = true;
+		uv_seam_edge = false;
+		uv_foldover_edge = false;
 	}
 };
 

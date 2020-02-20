@@ -48,13 +48,13 @@ public:
 	void update_mesh(int iteration);
 	void refresh_vertices();
 	void update_references();
-	int remove_vertex_pass(int startTrisCount, int targetTrisCount, double threshold, PoolVector<bool> &deleted0, PoolVector<bool> &deleted1, int deletedTris);
+	void remove_vertex_pass(int startTrisCount, int targetTrisCount, double threshold, PoolVector<bool> *deleted0, PoolVector<bool> *deleted1, int *deletedTris);
 	void compact_mesh();
 	bool are_uvs_the_same(int channel, int indexA, int indexB);
 	double vertex_error(SymmetricMatrix q, double x, double y, double z);
 	double calculate_error(MUVertex vert0, MUVertex vert1, Vector3 *result);
-	int update_triangles(int i0, int ia0, const MUVertex &v, PoolVector<bool> &deleted, int deletedTriangles);
-	bool flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> &deleted);
+	void update_triangles(int i0, int ia0, const MUVertex &v, PoolVector<bool> *deleted, int *deletedTriangles);
+	bool flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> *deleted);
 	static Vector3 calculate_barycentric_coords(Vector3 const &point, Vector3 const &a, Vector3 const &b, Vector3 const &c);
 	void interpolate_vertex_attributes(int dst, int i0, int i1, int i2, Vector3 &barycentricCoord);
 
