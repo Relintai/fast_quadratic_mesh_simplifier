@@ -28,44 +28,42 @@ SOFTWARE.
 #include "scene/resources/mesh.h"
 
 void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
-/*
-		ARRAY_VERTEX = VisualServer::ARRAY_VERTEX,
-		ARRAY_NORMAL = VisualServer::ARRAY_NORMAL,
-		ARRAY_TANGENT = VisualServer::ARRAY_TANGENT,
-		ARRAY_COLOR = VisualServer::ARRAY_COLOR,
-		ARRAY_TEX_UV = VisualServer::ARRAY_TEX_UV,
-		ARRAY_TEX_UV2 = VisualServer::ARRAY_TEX_UV2,
-		ARRAY_BONES = VisualServer::ARRAY_BONES,
-		ARRAY_WEIGHTS = VisualServer::ARRAY_WEIGHTS,
-		ARRAY_INDEX = VisualServer::ARRAY_INDEX,
-		ARRAY_MAX = VisualServer::ARRAY_MAX
+	ERR_FAIL_COND(arrays.size() != ArrayMesh::ARRAY_MAX);
 
-	_indices = mesher->get_indices();
-*/
-
-
-	if (ArrayMesh::ARRAY_VERTEX < arrays.size()) {
-		_vertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
+	PoolVector<Vector3> vertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
+	_vertices.resize(vertices.size());
+	for (int i = 0; i < vertices.size(); ++i) {
+		_vertices[i] = vertices[i];
 	}
 
-	if (ArrayMesh::ARRAY_NORMAL < arrays.size()) {
-		_normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
+	PoolVector<Vector3> normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
+	_normals.resize(normals.size());
+	for (int i = 0; i < normals.size(); ++i) {
+		_normals[i] = normals[i];
 	}
 
-	if (ArrayMesh::ARRAY_COLOR < arrays.size()) {
-		_colors = arrays.get(ArrayMesh::ARRAY_COLOR);
+	PoolVector<Color> colors = arrays.get(ArrayMesh::ARRAY_COLOR);
+	_colors.resize(colors.size());
+	for (int i = 0; i < colors.size(); ++i) {
+		_colors[i] = colors[i];
 	}
 
-	if (ArrayMesh::ARRAY_TEX_UV < arrays.size()) {
-		_uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
+	PoolVector<Vector2> uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
+	_uvs.resize(uvs.size());
+	for (int i = 0; i < uvs.size(); ++i) {
+		_uvs[i] = uvs[i];
 	}
 
-	if (ArrayMesh::ARRAY_TEX_UV2 < arrays.size()) {
-		_uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
+	PoolVector<Vector2> uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
+	_uv2s.resize(uv2s.size());
+	for (int i = 0; i < uv2s.size(); ++i) {
+		_uv2s[i] = uv2s[i];
 	}
 
-	if (ArrayMesh::ARRAY_INDEX < arrays.size()) {
-		_indices = arrays.get(ArrayMesh::ARRAY_INDEX);
+	PoolVector<int> indices = arrays.get(ArrayMesh::ARRAY_INDEX);
+	_indices.resize(indices.size());
+	for (int i = 0; i < indices.size(); ++i) {
+		_indices.set(i, indices[i]);
 	}
 
 	if ((_indices.size() % 3) != 0)
@@ -802,9 +800,7 @@ void FastQuadraticMeshSimplifier::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("simplify_mesh", "quality"), &FastQuadraticMeshSimplifier::simplify_mesh);
 	ClassDB::bind_method(D_METHOD("simplify_mesh_lossless"), &FastQuadraticMeshSimplifier::simplify_mesh_lossless);
 
-
-//	ClassDB::bind_method(D_METHOD("get_body_path"), &FastQuadraticMeshSimplifier::get_body_path);
-//	ClassDB::bind_method(D_METHOD("set_body_path", "value"), &FastQuadraticMeshSimplifier::set_body_path);
-//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "body_path"), "set_body_path", "get_body_path");
-
+	//	ClassDB::bind_method(D_METHOD("get_body_path"), &FastQuadraticMeshSimplifier::get_body_path);
+	//	ClassDB::bind_method(D_METHOD("set_body_path", "value"), &FastQuadraticMeshSimplifier::set_body_path);
+	//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "body_path"), "set_body_path", "get_body_path");
 }
