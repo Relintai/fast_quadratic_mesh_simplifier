@@ -40,6 +40,24 @@ class FastQuadraticMeshSimplifier : public Reference {
 	GDCLASS(FastQuadraticMeshSimplifier, Reference);
 
 public:
+	int get_max_iteration_count() const;
+	void set_max_iteration_count(const int value);
+
+	double get_agressiveness() const;
+	void set_agressiveness(const double value);
+
+	bool get_enable_smart_link() const;
+	void set_enable_smart_link(const bool value);
+
+	bool get_preserve_border_dges() const;
+	void set_preserve_border_dges(const bool value);
+
+	bool get_preserve_uv_seam_edges() const;
+	void set_preserve_uv_seam_edges(const bool value);
+
+	bool get_preserve_uv_foldover_edges() const;
+	void set_preserve_uv_foldover_edges(const bool value);
+
 	void initialize(const Array &arrays);
 	Array get_arrays();
 	void simplify_mesh(float quality);
@@ -56,7 +74,7 @@ public:
 	void update_triangles(int i0, int ia0, const MUVertex &v, PoolVector<bool> *deleted, int *deletedTriangles);
 	bool flipped(const Vector3 &p, int i0, int i1, const MUVertex &v0, PoolVector<bool> *deleted);
 	static Vector3 calculate_barycentric_coords(Vector3 const &point, Vector3 const &a, Vector3 const &b, Vector3 const &c);
-	void interpolate_vertex_attributes(int dst, int i0, int i1, int i2, Vector3 &barycentricCoord);
+	void interpolate_vertex_attributes(int dst, int i0, int i1, int i2, const Vector3 &barycentricCoord);
 
 	static double min3(double val1, double val2, double val3) {
 		return (val1 < val2 ? (val1 < val3 ? val1 : val3) : (val2 < val3 ? val2 : val3));

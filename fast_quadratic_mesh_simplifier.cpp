@@ -27,6 +27,48 @@ SOFTWARE.
 
 #include "scene/resources/mesh.h"
 
+int FastQuadraticMeshSimplifier::get_max_iteration_count() const {
+	return _max_iteration_count;
+}
+void FastQuadraticMeshSimplifier::set_max_iteration_count(const int value) {
+	_max_iteration_count = value;
+}
+
+double FastQuadraticMeshSimplifier::get_agressiveness() const {
+	return _agressiveness;
+}
+void FastQuadraticMeshSimplifier::set_agressiveness(const double value) {
+	_agressiveness = value;
+}
+
+bool FastQuadraticMeshSimplifier::get_enable_smart_link() const {
+	return _enable_smart_link;
+}
+void FastQuadraticMeshSimplifier::set_enable_smart_link(const bool value) {
+	_enable_smart_link = value;
+}
+
+bool FastQuadraticMeshSimplifier::get_preserve_border_dges() const {
+	return _preserve_border_dges;
+}
+void FastQuadraticMeshSimplifier::set_preserve_border_dges(const bool value) {
+	_preserve_border_dges = value;
+}
+
+bool FastQuadraticMeshSimplifier::get_preserve_uv_seam_edges() const {
+	return _preserve_uv_seam_edges;
+}
+void FastQuadraticMeshSimplifier::set_preserve_uv_seam_edges(const bool value) {
+	_preserve_uv_seam_edges = value;
+}
+
+bool FastQuadraticMeshSimplifier::get_preserve_uv_foldover_edges() const {
+	return _preserve_uv_foldover_edges;
+}
+void FastQuadraticMeshSimplifier::set_preserve_uv_foldover_edges(const bool value) {
+	_preserve_uv_foldover_edges = value;
+}
+
 void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 	ERR_FAIL_COND(arrays.size() != ArrayMesh::ARRAY_MAX);
 
@@ -100,12 +142,50 @@ Array FastQuadraticMeshSimplifier::get_arrays() {
 
 	arr.resize(ArrayMesh::ARRAY_MAX);
 
-	arr.set(ArrayMesh::ARRAY_VERTEX, _vertices);
-	arr.set(ArrayMesh::ARRAY_NORMAL, _normals);
-	arr.set(ArrayMesh::ARRAY_COLOR, _colors);
-	arr.set(ArrayMesh::ARRAY_TEX_UV, _uvs);
-	arr.set(ArrayMesh::ARRAY_TEX_UV2, _uv2s);
-	arr.set(ArrayMesh::ARRAY_INDEX, _indices);
+	PoolVector<Vector3> vertices;
+	PoolVector<Vector3> normals;
+	PoolVector<Color> colors;
+	PoolVector<Vector2> uvs;
+	PoolVector<Vector2> uv2s;
+	PoolVector<int> indices;
+
+	vertices.resize(_vertices.size());
+	normals.resize(_normals.size());
+	colors.resize(_colors.size());
+	uvs.resize(_uvs.size());
+	uv2s.resize(_uv2s.size());
+	indices.resize(_indices.size());
+
+	for (int i = 0; i < vertices.size(); ++i) {
+		vertices.set(i, _vertices[i]);
+	}
+
+	for (int i = 0; i < normals.size(); ++i) {
+		normals.set(i, _normals[i]);
+	}
+
+	for (int i = 0; i < colors.size(); ++i) {
+		colors.set(i, _colors[i]);
+	}
+
+	for (int i = 0; i < uvs.size(); ++i) {
+		uvs.set(i, _uvs[i]);
+	}
+
+	for (int i = 0; i < uv2s.size(); ++i) {
+		uv2s.set(i, _uv2s[i]);
+	}
+
+	for (int i = 0; i < indices.size(); ++i) {
+		indices.set(i, _indices[i]);
+	}
+
+	arr.set(ArrayMesh::ARRAY_VERTEX, vertices);
+	arr.set(ArrayMesh::ARRAY_NORMAL, normals);
+	arr.set(ArrayMesh::ARRAY_COLOR, colors);
+	arr.set(ArrayMesh::ARRAY_TEX_UV, uvs);
+	arr.set(ArrayMesh::ARRAY_TEX_UV2, uv2s);
+	arr.set(ArrayMesh::ARRAY_INDEX, indices);
 
 	return arr;
 }
@@ -208,7 +288,7 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 		for (int i = 0; i < _mu_triangles.size(); ++i) {
 			if (!_mu_triangles[i].deleted) {
 				if (dst != i) {
-					_mu_triangles[dst] = _mu_triangles[i];
+					_mu_triangles.set(dst, _mu_triangles[i]);
 				}
 				dst++;
 			}
@@ -226,7 +306,7 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 		vids.resize(8);
 
 		int vsize = 0;
-		for (int i = 0; i < _mu_vertices.size(); i++) {
+		for (int i = 0; i < _mu_vertices.size(); ++i) {
 			MUVertex v = _mu_vertices[i];
 
 			v.border_edge = false;
@@ -239,12 +319,14 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 		int ofs = 0;
 		int id = 0;
 		int borderVertexCount = 0;
-		double borderMinX = std::numeric_limits<double>::max();
-		double borderMaxX = std::numeric_limits<double>::min();
+		double borderMinX = std::numeric_limits<double>::min();
+		double borderMaxX = std::numeric_limits<double>::max();
 
 		for (int i = 0; i < _mu_vertices.size(); i++) {
-			int tstart = _mu_vertices[i].tstart;
-			int tcount = _mu_vertices[i].tcount;
+			MUVertex v = _mu_vertices[i];
+
+			int tstart = v.tstart;
+			int tcount = v.tcount;
 			vcount.resize(0);
 			vids.resize(0);
 			vsize = 0;
@@ -278,10 +360,9 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 				if (vcount[j] == 1) {
 					id = vids[j];
 
-					MUVertex v = _mu_vertices[id];
-
-					v.border_edge = true;
-					_mu_vertices.set(id, v);
+					MUVertex vv = _mu_vertices[id];
+					vv.border_edge = true;
+					_mu_vertices.set(id, vv);
 
 					++borderVertexCount;
 
@@ -339,7 +420,9 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 					double sqrMagnitude = sqrX + sqrY + sqrZ;
 
 					if (sqrMagnitude <= _vertex_link_distance_sqr) {
-						borderVertices.get(j).set_index(-1); // NOTE: This makes sure that the "other" vertex is not processed again
+						BorderVertex b = borderVertices[j]; // NOTE: This makes sure that the "other" vertex is not processed again
+						b.index = -1;
+						borderVertices.set(j, b);
 
 						MUVertex miv = _mu_vertices[myIndex];
 						MUVertex oiv = _mu_vertices[otherIndex];
@@ -382,32 +465,50 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 		// recomputing during the simplification is not required,
 		// but mostly improves the result for closed meshes
 		for (int i = 0; i < _mu_vertices.size(); ++i) {
-			_mu_vertices[i].q.reset();
+			MUVertex v = _mu_vertices[i];
+
+			v.q.reset();
+
+			_mu_vertices.set(i, v);
 		}
 
 		int v0, v1, v2;
 		Vector3 n, p0, p1, p2, p10, p20, dummy;
 		SymmetricMatrix sm;
 		for (int i = 0; i < _mu_triangles.size(); ++i) {
-			v0 = _mu_triangles[i].v0;
-			v1 = _mu_triangles[i].v1;
-			v2 = _mu_triangles[i].v2;
+			MUTriangle t = _mu_triangles[i];
 
-			p0 = _mu_vertices[v0].p;
-			p1 = _mu_vertices[v1].p;
-			p2 = _mu_vertices[v2].p;
+			v0 = t.v0;
+			v1 = t.v1;
+			v2 = t.v2;
+
+			MUVertex vt0 = _mu_vertices[v0];
+			MUVertex vt1 = _mu_vertices[v1];
+			MUVertex vt2 = _mu_vertices[v2];
+
+			p0 = vt0.p;
+			p1 = vt1.p;
+			p2 = vt2.p;
 			p10 = p1 - p0;
 			p20 = p2 - p0;
 
 			n = p10.cross(p20);
 
 			n.normalize();
-			_mu_triangles[i].n = n;
+
+			t.n = n;
+
+			_mu_triangles.set(i, t);
 
 			sm.from_plane(n.x, n.y, n.z, -n.dot(p0));
-			_mu_vertices[v0].q += sm;
-			_mu_vertices[v1].q += sm;
-			_mu_vertices[v2].q += sm;
+
+			vt0.q += sm;
+			vt1.q += sm;
+			vt2.q += sm;
+
+			_mu_vertices.set(v0, vt0);
+			_mu_vertices.set(v1, vt1);
+			_mu_vertices.set(v2, vt2);
 		}
 
 		for (int i = 0; i < _mu_triangles.size(); ++i) {
@@ -575,13 +676,14 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 
 		if (vert.tcount > 0) {
 			vert.tstart = dst;
-			_mu_vertices[i] = vert;
+			_mu_vertices.set(i, vert);
 
 			if (dst != i) {
-				_mu_vertices[dst].p = vert.p;
+				MUVertex dv = _mu_vertices[dst];
+				dv.p = vert.p;
+				_mu_vertices.set(dst, dv);
 
 				if (_normals.size() > 0) _normals.set(dst, _normals[i]);
-
 				if (_colors.size() > 0) _colors.set(dst, _colors[i]);
 				if (_uvs.size() > 0) _uvs.set(dst, _uvs[i]);
 				if (_uv2s.size() > 0) _uv2s.set(dst, _uv2s[i]);
@@ -597,7 +699,7 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 		triangle.v0 = _mu_vertices[triangle.v0].tstart;
 		triangle.v1 = _mu_vertices[triangle.v1].tstart;
 		triangle.v2 = _mu_vertices[triangle.v2].tstart;
-		_mu_triangles[i] = triangle;
+		_mu_triangles.set(i, triangle);
 	}
 
 	//vertexCount = dst;
@@ -810,7 +912,7 @@ void FastQuadraticMeshSimplifier::update_triangles(int i0, int ia0, const MUVert
 		t.err2 = calculate_error(_mu_vertices[t.v2], _mu_vertices[t.v0], &p);
 		t.err3 = FastQuadraticMeshSimplifier::min3(t.err0, t.err1, t.err2);
 
-		_mu_triangles[tid] = t;
+		_mu_triangles.set(tid, t);
 		_mu_refs.push_back(r);
 	}
 
@@ -824,7 +926,7 @@ bool FastQuadraticMeshSimplifier::flipped(const Vector3 &p, int i0, int i1, cons
 		MURef r = _mu_refs[v0.tstart + k];
 		MUTriangle t = _mu_triangles[r.tid];
 
-		if (_mu_triangles[r.tid].deleted)
+		if (t.deleted)
 			continue;
 
 		int s = r.tvertex;
@@ -846,7 +948,7 @@ bool FastQuadraticMeshSimplifier::flipped(const Vector3 &p, int i0, int i1, cons
 		Vector3 n = d1.cross(d2);
 		n.normalize();
 		deleted->set(k, false);
-		dot = n.dot(_mu_triangles[r.tid].n);
+		dot = n.dot(t.n);
 		if (dot < 0.2)
 			return true;
 	}
@@ -869,21 +971,21 @@ Vector3 FastQuadraticMeshSimplifier::calculate_barycentric_coords(Vector3 const 
 	return Vector3(u, v, w);
 }
 
-void FastQuadraticMeshSimplifier::interpolate_vertex_attributes(int dst, int i0, int i1, int i2, Vector3 &barycentricCoord) {
+void FastQuadraticMeshSimplifier::interpolate_vertex_attributes(int dst, int i0, int i1, int i2, const Vector3 &barycentricCoord) {
 	if (_normals.size() > 0) {
-		_normals[dst] = (_normals[i0] * barycentricCoord.x) + (_normals[i1] * barycentricCoord.y) + (_normals[i2] * barycentricCoord.z).normalized();
+		_normals.set(dst, (_normals[i0] * barycentricCoord.x) + (_normals[i1] * barycentricCoord.y) + (_normals[i2] * barycentricCoord.z).normalized());
 	}
 
 	if (_uvs.size() > 0) {
-		_uvs[dst] = (_uvs[i0] * barycentricCoord.x) + (_uvs[i1] * barycentricCoord.y) + (_uvs[i2] * barycentricCoord.z);
+		_uvs.set(dst, (_uvs[i0] * barycentricCoord.x) + (_uvs[i1] * barycentricCoord.y) + (_uvs[i2] * barycentricCoord.z));
 	}
 
 	if (_uv2s.size() > 0) {
-		_uv2s[dst] = (_uv2s[i0] * barycentricCoord.x) + (_uv2s[i1] * barycentricCoord.y) + (_uv2s[i2] * barycentricCoord.z);
+		_uv2s.set(dst, (_uv2s[i0] * barycentricCoord.x) + (_uv2s[i1] * barycentricCoord.y) + (_uv2s[i2] * barycentricCoord.z));
 	}
 
 	if (_colors.size() > 0) {
-		_colors[dst] = (_colors[i0] * barycentricCoord.x) + (_colors[i1] * barycentricCoord.y) + (_colors[i2] * barycentricCoord.z);
+		_colors.set(dst, (_colors[i0] * barycentricCoord.x) + (_colors[i1] * barycentricCoord.y) + (_colors[i2] * barycentricCoord.z));
 	}
 }
 
@@ -902,7 +1004,27 @@ void FastQuadraticMeshSimplifier::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("simplify_mesh", "quality"), &FastQuadraticMeshSimplifier::simplify_mesh);
 	ClassDB::bind_method(D_METHOD("simplify_mesh_lossless"), &FastQuadraticMeshSimplifier::simplify_mesh_lossless);
 
-	//	ClassDB::bind_method(D_METHOD("get_body_path"), &FastQuadraticMeshSimplifier::get_body_path);
-	//	ClassDB::bind_method(D_METHOD("set_body_path", "value"), &FastQuadraticMeshSimplifier::set_body_path);
-	//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "body_path"), "set_body_path", "get_body_path");
+	ClassDB::bind_method(D_METHOD("get_max_iteration_count"), &FastQuadraticMeshSimplifier::get_max_iteration_count);
+	ClassDB::bind_method(D_METHOD("set_max_iteration_count", "value"), &FastQuadraticMeshSimplifier::set_max_iteration_count);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_iteration_count"), "set_max_iteration_count", "get_max_iteration_count");
+
+	ClassDB::bind_method(D_METHOD("get_agressiveness"), &FastQuadraticMeshSimplifier::get_agressiveness);
+	ClassDB::bind_method(D_METHOD("set_agressiveness", "value"), &FastQuadraticMeshSimplifier::set_agressiveness);
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "agressiveness"), "set_agressiveness", "get_agressiveness");
+
+	ClassDB::bind_method(D_METHOD("get_enable_smart_link"), &FastQuadraticMeshSimplifier::get_enable_smart_link);
+	ClassDB::bind_method(D_METHOD("set_enable_smart_link", "value"), &FastQuadraticMeshSimplifier::set_enable_smart_link);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "enable_smart_link"), "set_enable_smart_link", "get_enable_smart_link");
+
+	ClassDB::bind_method(D_METHOD("get_preserve_border_dges"), &FastQuadraticMeshSimplifier::get_preserve_border_dges);
+	ClassDB::bind_method(D_METHOD("set_preserve_border_dges", "value"), &FastQuadraticMeshSimplifier::set_preserve_border_dges);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "preserve_border_dges"), "set_preserve_border_dges", "get_preserve_border_dges");
+
+	ClassDB::bind_method(D_METHOD("get_preserve_uv_seam_edges"), &FastQuadraticMeshSimplifier::get_preserve_uv_seam_edges);
+	ClassDB::bind_method(D_METHOD("set_preserve_uv_seam_edges", "value"), &FastQuadraticMeshSimplifier::set_preserve_uv_seam_edges);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "preserve_uv_seam_edges"), "set_preserve_uv_seam_edges", "get_preserve_uv_seam_edges");
+
+	ClassDB::bind_method(D_METHOD("get_preserve_uv_foldover_edges"), &FastQuadraticMeshSimplifier::get_preserve_uv_foldover_edges);
+	ClassDB::bind_method(D_METHOD("set_preserve_uv_foldover_edges", "value"), &FastQuadraticMeshSimplifier::set_preserve_uv_foldover_edges);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "preserve_uv_foldover_edges"), "set_preserve_uv_foldover_edges", "get_preserve_uv_foldover_edges");
 }

@@ -408,10 +408,6 @@ struct BorderVertex {
 	int index;
 	int hash;
 
-	_FORCE_INLINE_ void set_index(int p_value) {
-		index = p_value;
-	}
-
 	BorderVertex() {
 		index = 0;
 		hash = 0;
