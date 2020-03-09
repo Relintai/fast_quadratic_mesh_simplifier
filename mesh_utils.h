@@ -435,7 +435,6 @@ struct MUTriangle {
 };
 
 struct MUVertex {
-	Vector3 p;
 	Vertex vertex;
 	int tstart;
 	int tcount;
@@ -453,7 +452,7 @@ struct MUVertex {
 	}
 
 	MUVertex(float x, float y, float z) {
-		p = Vector3(x, y, z);
+		vertex.vertex = Vector3(x, y, z);
 		tstart = 0;
 		tcount = 0;
 		border_edge = true;
@@ -462,7 +461,6 @@ struct MUVertex {
 	}
 
 	MUVertex(const Vertex &p_vertex) {
-		p = p_vertex.vertex;
 		vertex = p_vertex;
 		tstart = 0;
 		tcount = 0;
