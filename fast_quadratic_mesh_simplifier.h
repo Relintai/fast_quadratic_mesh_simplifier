@@ -36,6 +36,8 @@ SOFTWARE.
 #include "core/pool_vector.h"
 #include "core/resource.h"
 
+using namespace FQMS;
+
 class FastQuadraticMeshSimplifier : public Reference {
 	GDCLASS(FastQuadraticMeshSimplifier, Reference);
 
@@ -64,7 +66,6 @@ public:
 	void simplify_mesh_lossless();
 
 	void update_mesh(int iteration);
-	void refresh_vertices();
 	void update_references();
 	void remove_vertex_pass(int startTrisCount, int targetTrisCount, double threshold, PoolVector<bool> *deleted0, PoolVector<bool> *deleted1, int *deletedTris);
 	void compact_mesh();
@@ -76,21 +77,21 @@ public:
 	static Vector3 calculate_barycentric_coords(Vector3 const &point, Vector3 const &a, Vector3 const &b, Vector3 const &c);
 	void interpolate_vertex_attributes(int dst, int i0, int i1, int i2, const Vector3 &barycentricCoord);
 
+	void remove_doubles();
+	void remove_doubles_hashed();
+
 	static double min3(double val1, double val2, double val3) {
 		return (val1 < val2 ? (val1 < val3 ? val1 : val3) : (val2 < val3 ? val2 : val3));
 	}
 
 	FastQuadraticMeshSimplifier();
+	~FastQuadraticMeshSimplifier();
 
 protected:
 	static void _bind_methods();
 
 private:
-	PoolVector<Vector3> _vertices;
-	PoolVector<Vector3> _normals;
-	PoolVector<Color> _colors;
-	PoolVector<Vector2> _uvs;
-	PoolVector<Vector2> _uv2s;
+	PoolVector<Vertex> _vertices;
 	PoolVector<int> _indices;
 
 	PoolVector<MUTriangle> _mu_triangles;
@@ -104,6 +105,7 @@ private:
 	bool _preserve_border_dges;
 	bool _preserve_uv_seam_edges;
 	bool _preserve_uv_foldover_edges;
+	int _format;
 };
 
 #endif

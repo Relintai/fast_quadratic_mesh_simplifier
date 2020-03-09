@@ -26,7 +26,88 @@ SOFTWARE.
 
 */
 
+#include "core/color.h"
+#include "core/hashfuncs.h"
+#include "core/math/vector2.h"
 #include "core/math/vector3.h"
+#include "core/vector.h"
+
+namespace FQMS {
+
+struct Vertex {
+
+	Vector3 vertex;
+	Color color;
+	Vector3 normal; // normal, binormal, tangent
+	Vector3 binormal;
+	Vector3 tangent;
+	Vector2 uv;
+	Vector2 uv2;
+	Vector<int> bones;
+	Vector<float> weights;
+
+	bool operator==(const Vertex &p_vertex) const {
+
+		if (vertex != p_vertex.vertex)
+			return false;
+
+		if (uv != p_vertex.uv)
+			return false;
+
+		if (uv2 != p_vertex.uv2)
+			return false;
+
+		if (normal != p_vertex.normal)
+			return false;
+
+		if (binormal != p_vertex.binormal)
+			return false;
+
+		if (color != p_vertex.color)
+			return false;
+
+		if (bones.size() != p_vertex.bones.size())
+			return false;
+
+		for (int i = 0; i < bones.size(); i++) {
+			if (bones[i] != p_vertex.bones[i])
+				return false;
+		}
+
+		for (int i = 0; i < weights.size(); i++) {
+			if (weights[i] != p_vertex.weights[i])
+				return false;
+		}
+
+		return true;
+	}
+
+	Vertex() {}
+};
+
+struct VertexHasher {
+	static _FORCE_INLINE_ uint32_t hash(const Vertex &p_vtx) {
+
+		uint32_t h = hash_djb2_buffer((const uint8_t *)&p_vtx.vertex, sizeof(real_t) * 3);
+		h = hash_djb2_buffer((const uint8_t *)&p_vtx.normal, sizeof(real_t) * 3, h);
+		h = hash_djb2_buffer((const uint8_t *)&p_vtx.binormal, sizeof(real_t) * 3, h);
+		h = hash_djb2_buffer((const uint8_t *)&p_vtx.tangent, sizeof(real_t) * 3, h);
+		h = hash_djb2_buffer((const uint8_t *)&p_vtx.uv, sizeof(real_t) * 2, h);
+		h = hash_djb2_buffer((const uint8_t *)&p_vtx.uv2, sizeof(real_t) * 2, h);
+		h = hash_djb2_buffer((const uint8_t *)&p_vtx.color, sizeof(real_t) * 4, h);
+		h = hash_djb2_buffer((const uint8_t *)p_vtx.bones.ptr(), p_vtx.bones.size() * sizeof(int), h);
+		h = hash_djb2_buffer((const uint8_t *)p_vtx.weights.ptr(), p_vtx.weights.size() * sizeof(float), h);
+		return h;
+	}
+};
+
+struct WeightSort {
+	int index;
+	float weight;
+	bool operator<(const WeightSort &p_right) const {
+		return weight < p_right.weight;
+	}
+};
 
 /// A symmetric matrix.
 struct SymmetricMatrix {
@@ -355,6 +436,7 @@ struct MUTriangle {
 
 struct MUVertex {
 	Vector3 p;
+	Vertex vertex;
 	int tstart;
 	int tcount;
 	SymmetricMatrix q;
@@ -379,8 +461,9 @@ struct MUVertex {
 		uv_foldover_edge = false;
 	}
 
-	MUVertex(Vector3 point) {
-		p = point;
+	MUVertex(const Vertex &p_vertex) {
+		p = p_vertex.vertex;
+		vertex = p_vertex;
 		tstart = 0;
 		tcount = 0;
 		border_edge = true;
@@ -422,5 +505,7 @@ struct BorderVertex {
 struct BorderVertexComparer {
 	_FORCE_INLINE_ bool operator()(const BorderVertex &a, const BorderVertex &b) const { return a.hash < b.hash; }
 };
+
+} // namespace FQMS
 
 #endif

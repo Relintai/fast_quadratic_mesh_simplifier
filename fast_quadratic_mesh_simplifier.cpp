@@ -26,6 +26,7 @@ SOFTWARE.
 */
 
 #include "scene/resources/mesh.h"
+#include "servers/visual_server.h"
 
 int FastQuadraticMeshSimplifier::get_max_iteration_count() const {
 	return _max_iteration_count;
@@ -73,33 +74,44 @@ void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 	ERR_FAIL_COND(arrays.size() != ArrayMesh::ARRAY_MAX);
 
 	PoolVector<Vector3> vertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
+	PoolVector<Vector3> normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
+	PoolVector<Color> colors = arrays.get(ArrayMesh::ARRAY_COLOR);
+	PoolVector<Vector2> uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
+	PoolVector<Vector2> uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
+
+	_format = 0;
+
+	if (normals.size() > 0)
+		_format |= VisualServer::ARRAY_FORMAT_NORMAL;
+
+	if (colors.size() > 0)
+		_format |= VisualServer::ARRAY_FORMAT_COLOR;
+
+	if (uvs.size() > 0)
+		_format |= VisualServer::ARRAY_FORMAT_TEX_UV;
+
+	if (uv2s.size() > 0)
+		_format |= VisualServer::ARRAY_FORMAT_TEX_UV2;
+
 	_vertices.resize(vertices.size());
 	for (int i = 0; i < vertices.size(); ++i) {
-		_vertices.set(i, vertices[i]);
-	}
 
-	PoolVector<Vector3> normals = arrays.get(ArrayMesh::ARRAY_NORMAL);
-	_normals.resize(normals.size());
-	for (int i = 0; i < normals.size(); ++i) {
-		_normals.set(i, normals[i]);
-	}
+		Vertex vert;
+		vert.vertex = vertices[i];
 
-	PoolVector<Color> colors = arrays.get(ArrayMesh::ARRAY_COLOR);
-	_colors.resize(colors.size());
-	for (int i = 0; i < colors.size(); ++i) {
-		_colors.set(i, colors[i]);
-	}
+		if (normals.size() > i)
+			vert.normal = normals[i];
 
-	PoolVector<Vector2> uvs = arrays.get(ArrayMesh::ARRAY_TEX_UV);
-	_uvs.resize(uvs.size());
-	for (int i = 0; i < uvs.size(); ++i) {
-		_uvs.set(i, uvs[i]);
-	}
+		if (colors.size() > i)
+			vert.color = colors[i];
 
-	PoolVector<Vector2> uv2s = arrays.get(ArrayMesh::ARRAY_TEX_UV2);
-	_uv2s.resize(uv2s.size());
-	for (int i = 0; i < uv2s.size(); ++i) {
-		_uv2s.set(i, uv2s[i]);
+		if (uvs.size() > i)
+			vert.uv = uvs[i];
+
+		if (uv2s.size() > i)
+			vert.uv2 = uv2s[i];
+
+		_vertices.set(i, vert);
 	}
 
 	PoolVector<int> indices = arrays.get(ArrayMesh::ARRAY_INDEX);
@@ -128,15 +140,6 @@ void FastQuadraticMeshSimplifier::initialize(const Array &arrays) {
 	}
 }
 
-void FastQuadraticMeshSimplifier::refresh_vertices() {
-	_vertices.resize(_mu_vertices.size());
-	for (int i = 0; i < _mu_vertices.size(); ++i) {
-		MUVertex vert = _mu_vertices[i];
-
-		_vertices.set(i, Vector3(vert.p));
-	}
-}
-
 Array FastQuadraticMeshSimplifier::get_arrays() {
 	Array arr;
 
@@ -149,31 +152,40 @@ Array FastQuadraticMeshSimplifier::get_arrays() {
 	PoolVector<Vector2> uv2s;
 	PoolVector<int> indices;
 
-	vertices.resize(_vertices.size());
-	normals.resize(_normals.size());
-	colors.resize(_colors.size());
-	uvs.resize(_uvs.size());
-	uv2s.resize(_uv2s.size());
+	vertices.resize(_mu_vertices.size());
+
+	if ((_format & VisualServer::ARRAY_FORMAT_NORMAL) != 0)
+		normals.resize(_mu_vertices.size());
+
+	if ((_format & VisualServer::ARRAY_FORMAT_COLOR) != 0)
+		colors.resize(_mu_vertices.size());
+
+	if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0)
+		uvs.resize(_mu_vertices.size());
+
+	if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0)
+		uv2s.resize(_mu_vertices.size());
+
 	indices.resize(_indices.size());
 
 	for (int i = 0; i < vertices.size(); ++i) {
-		vertices.set(i, _vertices[i]);
+		vertices.set(i, _mu_vertices[i].vertex.vertex);
 	}
 
 	for (int i = 0; i < normals.size(); ++i) {
-		normals.set(i, _normals[i]);
+		normals.set(i, _mu_vertices[i].vertex.normal);
 	}
 
 	for (int i = 0; i < colors.size(); ++i) {
-		colors.set(i, _colors[i]);
+		colors.set(i, _mu_vertices[i].vertex.color);
 	}
 
 	for (int i = 0; i < uvs.size(); ++i) {
-		uvs.set(i, _uvs[i]);
+		uvs.set(i, _mu_vertices[i].vertex.uv);
 	}
 
 	for (int i = 0; i < uv2s.size(); ++i) {
-		uv2s.set(i, _uv2s[i]);
+		uv2s.set(i, _mu_vertices[i].vertex.uv2);
 	}
 
 	for (int i = 0; i < indices.size(); ++i) {
@@ -237,9 +249,6 @@ void FastQuadraticMeshSimplifier::simplify_mesh(float quality) {
 	print_error("Finished simplification with triangle count " + String::num(_mu_triangles.size()));
 }
 
-//Mesh Simplification
-//Ported from https://github.com/Whinarn/UnityFastQuadraticMeshSimplifier
-//Original license: MIT License Copyright (c) 2017 Mattias Edlund
 void FastQuadraticMeshSimplifier::simplify_mesh_lossless() {
 	int deletedTris = 0;
 	PoolVector<bool> deleted0;
@@ -687,10 +696,6 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 				dv.p = vert.p;
 				_mu_vertices.set(dst, dv);
 
-				if (_normals.size() > 0) _normals.set(dst, _normals[i]);
-				if (_colors.size() > 0) _colors.set(dst, _colors[i]);
-				if (_uvs.size() > 0) _uvs.set(dst, _uvs[i]);
-				if (_uv2s.size() > 0) _uv2s.set(dst, _uv2s[i]);
 				if (_indices.size() > 0) _indices.set(dst, _indices[i]);
 			}
 
@@ -707,21 +712,14 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 	}
 
 	//vertexCount = dst;
-	_vertices.resize(dst);
-	if (_normals.size() > 0) _normals.resize(dst);
-	if (_colors.size() > 0) _colors.resize(dst);
-	if (_uvs.size() > 0) _uvs.resize(dst);
-	if (_uv2s.size() > 0) _uv2s.resize(dst);
 	if (_indices.size() > 0) _indices.resize(dst);
 }
 
 bool FastQuadraticMeshSimplifier::are_uvs_the_same(int channel, int indexA, int indexB) {
-	if (_uv2s.size() > 0) {
-		Vector2 uva = _uv2s[indexA];
-		Vector2 uvb = _uv2s[indexB];
+	Vector2 uva = _mu_vertices[indexA].vertex.uv;
+	Vector2 uvb = _mu_vertices[indexB].vertex.uv;
 
-		return Math::is_equal_approx(uva.x, uvb.x) && Math::is_equal_approx(uva.y, uvb.y);
-	}
+	return Math::is_equal_approx(uva.x, uvb.x) && Math::is_equal_approx(uva.y, uvb.y);
 
 	return false;
 }
@@ -981,21 +979,122 @@ Vector3 FastQuadraticMeshSimplifier::calculate_barycentric_coords(Vector3 const 
 }
 
 void FastQuadraticMeshSimplifier::interpolate_vertex_attributes(int dst, int i0, int i1, int i2, const Vector3 &barycentricCoord) {
-	if (_normals.size() > 0) {
-		_normals.set(dst, (_normals[i0] * barycentricCoord.x) + (_normals[i1] * barycentricCoord.y) + (_normals[i2] * barycentricCoord.z).normalized());
+	MUVertex v0 = _mu_vertices[i0];
+	MUVertex v1 = _mu_vertices[i1];
+	MUVertex v2 = _mu_vertices[i2];
+	MUVertex vdst = _mu_vertices[dst];
+
+	if ((_format & VisualServer::ARRAY_FORMAT_NORMAL) != 0)
+		vdst.vertex.normal = (v0.vertex.normal * barycentricCoord.x) + (v1.vertex.normal * barycentricCoord.y) + (v2.vertex.normal * barycentricCoord.z).normalized();
+
+	if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0)
+		vdst.vertex.uv = (v0.vertex.uv * barycentricCoord.x) + (v1.vertex.uv * barycentricCoord.y) + (v2.vertex.uv * barycentricCoord.z);
+
+	if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0)
+		vdst.vertex.uv2 = (v0.vertex.uv2 * barycentricCoord.x) + (v1.vertex.uv2 * barycentricCoord.y) + (v2.vertex.uv2 * barycentricCoord.z);
+
+	if ((_format & VisualServer::ARRAY_FORMAT_COLOR) != 0)
+		vdst.vertex.color = (v0.vertex.color * barycentricCoord.x) + (v1.vertex.color * barycentricCoord.y) + (v2.vertex.color * barycentricCoord.z);
+
+	_mu_vertices.set(dst, vdst);
+}
+
+void FastQuadraticMeshSimplifier::remove_doubles() {
+	if (_vertices.size() == 0)
+		return;
+
+	//print_error("before " + String::num(_vertices.size()));
+
+	for (int i = 0; i < _vertices.size(); ++i) {
+		Vertex vert = _vertices[i];
+		PoolVector<int> indices;
+
+		for (int j = i + 1; j < _vertices.size(); ++j) {
+			if (_vertices[j] == vert) {
+				indices.push_back(j);
+			}
+		}
+
+		for (int j = 0; j < indices.size(); ++j) {
+			int index = indices[j];
+
+			_vertices.remove(index);
+
+			//make all indices that were bigger than the one we replaced one lower
+			for (int k = 0; k < _indices.size(); ++k) {
+				int indx = _indices[k];
+
+				if (indx == index) {
+					_indices.set(k, i);
+				} else if (indx > index) {
+					_indices.set(k, --indx);
+				}
+			}
+
+			for (int k = j + 1; k < indices.size(); ++k) {
+				int val = indices[k];
+
+				if (val > index) {
+					indices.set(k, --val);
+				}
+			}
+		}
 	}
 
-	if (_uvs.size() > 0) {
-		_uvs.set(dst, (_uvs[i0] * barycentricCoord.x) + (_uvs[i1] * barycentricCoord.y) + (_uvs[i2] * barycentricCoord.z));
+	//print_error("after " + String::num(_vertices.size())+ " " + String::num(duration.count()));
+}
+
+//lot faster that normal remove_doubles, but false positives can happen curtesy of hash collisions
+void FastQuadraticMeshSimplifier::remove_doubles_hashed() {
+	if (_vertices.size() == 0)
+		return;
+
+	//print_error("before " + String::num(_vertices.size()));
+
+	PoolVector<uint32_t> hashes;
+	hashes.resize(_vertices.size());
+	for (int i = 0; i < _vertices.size(); ++i) {
+		hashes.set(i, VertexHasher::hash(_vertices[i]));
 	}
 
-	if (_uv2s.size() > 0) {
-		_uv2s.set(dst, (_uv2s[i0] * barycentricCoord.x) + (_uv2s[i1] * barycentricCoord.y) + (_uv2s[i2] * barycentricCoord.z));
+	for (int i = 0; i < hashes.size(); ++i) {
+		uint32_t hash = hashes[i];
+		PoolVector<int> indices;
+
+		for (int j = i + 1; j < hashes.size(); ++j) {
+			if (hashes[j] == hash) {
+				indices.push_back(j);
+			}
+		}
+
+		for (int j = 0; j < indices.size(); ++j) {
+			int index = indices[j];
+
+			hashes.remove(index);
+			_vertices.remove(index);
+
+			//make all indices that were bigger than the one we replaced one lower
+			for (int k = 0; k < _indices.size(); ++k) {
+				int indx = _indices[k];
+
+				if (indx == index) {
+					_indices.set(k, i);
+				} else if (indx > index) {
+					_indices.set(k, --indx);
+				}
+			}
+
+			for (int k = j + 1; k < indices.size(); ++k) {
+				int val = indices[k];
+
+				if (val > index) {
+					indices.set(k, --val);
+				}
+			}
+		}
 	}
 
-	if (_colors.size() > 0) {
-		_colors.set(dst, (_colors[i0] * barycentricCoord.x) + (_colors[i1] * barycentricCoord.y) + (_colors[i2] * barycentricCoord.z));
-	}
+	//print_error("after " + String::num(_vertices.size()) + " " + String::num(duration.count()));
 }
 
 FastQuadraticMeshSimplifier::FastQuadraticMeshSimplifier() {
@@ -1005,6 +1104,10 @@ FastQuadraticMeshSimplifier::FastQuadraticMeshSimplifier() {
 	_preserve_border_dges = false;
 	_preserve_uv_seam_edges = false;
 	_preserve_uv_foldover_edges = false;
+	_format = 0;
+}
+
+FastQuadraticMeshSimplifier::~FastQuadraticMeshSimplifier() {
 }
 
 void FastQuadraticMeshSimplifier::_bind_methods() {
@@ -1036,4 +1139,7 @@ void FastQuadraticMeshSimplifier::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_preserve_uv_foldover_edges"), &FastQuadraticMeshSimplifier::get_preserve_uv_foldover_edges);
 	ClassDB::bind_method(D_METHOD("set_preserve_uv_foldover_edges", "value"), &FastQuadraticMeshSimplifier::set_preserve_uv_foldover_edges);
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "preserve_uv_foldover_edges"), "set_preserve_uv_foldover_edges", "get_preserve_uv_foldover_edges");
+
+	ClassDB::bind_method(D_METHOD("remove_doubles"), &FastQuadraticMeshSimplifier::remove_doubles);
+	ClassDB::bind_method(D_METHOD("remove_doubles_hashed"), &FastQuadraticMeshSimplifier::remove_doubles_hashed);
 }
