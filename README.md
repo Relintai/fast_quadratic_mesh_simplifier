@@ -1,6 +1,6 @@
 # Fast Quadratic Mesh Simplifier
 
-An abandoned unfinished port of https://github.com/Whinarn/UnityMeshSimplifier to a GODOT engine c++ module.
+A port of https://github.com/Whinarn/UnityMeshSimplifier to a GODOT engine c++ module.
 
 For future reference it's based on e8ff4e8862735197c3308cfe926eeba68e0d2edb.
 
