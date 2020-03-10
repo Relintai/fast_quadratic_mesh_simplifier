@@ -166,8 +166,6 @@ Array FastQuadraticMeshSimplifier::get_arrays() {
 	if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0)
 		uv2s.resize(_mu_vertices.size());
 
-	indices.resize(_indices.size());
-
 	for (int i = 0; i < vertices.size(); ++i) {
 		vertices.set(i, _mu_vertices[i].vertex.vertex);
 	}
@@ -188,7 +186,16 @@ Array FastQuadraticMeshSimplifier::get_arrays() {
 		uv2s.set(i, _mu_vertices[i].vertex.uv2);
 	}
 
-	for (int i = 0; i < indices.size(); ++i) {
+	indices.resize(_mu_triangles.size() * 3);
+	for (int i = 0; i < _mu_triangles.size(); ++i) {
+		MUTriangle t = _mu_triangles[i];
+
+		int offset = i * 3;
+
+		indices.set(offset, t.v0);
+		indices.set(offset + 1, t.v1);
+		indices.set(offset + 2, t.v2);
+
 		indices.set(i, _indices[i]);
 	}
 
@@ -544,7 +551,7 @@ void FastQuadraticMeshSimplifier::update_mesh(int iteration) {
 
 void FastQuadraticMeshSimplifier::update_references() {
 	// Init Reference ID list
-	for (int i = 0; i < _mu_vertices.size(); i++) {
+	for (int i = 0; i < _mu_vertices.size(); ++i) {
 		MUVertex v = _mu_vertices[i];
 
 		v.tstart = 0;
@@ -553,7 +560,7 @@ void FastQuadraticMeshSimplifier::update_references() {
 		_mu_vertices.set(i, v);
 	}
 
-	for (int i = 0; i < _mu_triangles.size(); i++) {
+	for (int i = 0; i < _mu_triangles.size(); ++i) {
 
 		MUTriangle t = _mu_triangles[i];
 
@@ -702,7 +709,7 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 				dv.vertex = vert.vertex;
 				_mu_vertices.set(dst, dv);
 
-				if (_indices.size() > 0) _indices.set(dst, _indices[i]);
+				//if (_indices.size() > 0) _indices.set(dst, _indices[i]);
 			}
 
 			++dst;
@@ -717,8 +724,10 @@ void FastQuadraticMeshSimplifier::compact_mesh() {
 		_mu_triangles.set(i, triangle);
 	}
 
-	//vertexCount = dst;
-	if (_indices.size() > 0) _indices.resize(dst);
+	//int vertexCount = dst;
+	_mu_vertices.resize(dst);
+
+	//if (_indices.size() > 0) _indices.resize(vertexCount);
 }
 
 bool FastQuadraticMeshSimplifier::are_uvs_the_same(int channel, int indexA, int indexB) {
