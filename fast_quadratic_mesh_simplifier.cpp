@@ -214,9 +214,7 @@ void FastQuadraticMeshSimplifier::simplify_mesh(float quality) {
 
 	int deletedTris = 0;
 	PoolVector<bool> deleted0;
-	deleted0.resize(20);
 	PoolVector<bool> deleted1;
-	deleted1.resize(20);
 
 	int startTrisCount = _mu_triangles.size();
 	int targetTrisCount = static_cast<int>(_mu_triangles.size() * quality + 0.5);
