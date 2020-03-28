@@ -15,6 +15,8 @@
 // 5/2016: Chris Rorden created minimal version for OSX/Linux/Windows compile
 
 #include "core/array.h"
+#include "core/math/vector2.h"
+#include "core/math/vector3.h"
 #include "scene/resources/mesh.h"
 #include "servers/visual_server.h"
 #include <float.h> //FLT_EPSILON, DBL_EPSILON
@@ -329,7 +331,8 @@ public:
 		int deleted, dirty, attr;
 		vec3f n;
 		vec3f uvs[3];
-		Color color;
+		vec3f uv2s[3];
+		Color color[3];
 		int material;
 	};
 	struct Vertex {
@@ -999,8 +1002,6 @@ public:
 	void initialize(const Array &arrays) {
 		ERR_FAIL_COND(arrays.size() != ArrayMesh::ARRAY_MAX);
 
-		bool has_uv = false;
-
 		PoolVector<Vector3> pvertices = arrays.get(ArrayMesh::ARRAY_VERTEX);
 		PoolVector<Vector3> pnormals = arrays.get(ArrayMesh::ARRAY_NORMAL);
 		PoolVector<Color> pcolors = arrays.get(ArrayMesh::ARRAY_COLOR);
@@ -1015,17 +1016,11 @@ public:
 		if (pcolors.size() > 0)
 			_format |= VisualServer::ARRAY_FORMAT_COLOR;
 
-		if (puvs.size() > 0) {
+		if (puvs.size() > 0)
 			_format |= VisualServer::ARRAY_FORMAT_TEX_UV;
 
-			has_uv = true;
-		}
-
-		if (puv2s.size() > 0) {
+		if (puv2s.size() > 0)
 			_format |= VisualServer::ARRAY_FORMAT_TEX_UV2;
-
-			has_uv = true;
-		}
 
 		//_vertices.resize(vertices.size());
 		for (int i = 0; i < pvertices.size(); ++i) {
@@ -1037,24 +1032,6 @@ public:
 			vert.p.z = v3.z;
 
 			vertices.push_back(vert);
-
-			/*
-			vert.vertex = vertices[i];
-
-			if (normals.size() > i)
-				vert.normal = normals[i];
-
-			if (colors.size() > i)
-				vert.color = colors[i];
-
-			if (uvs.size() > i)
-				vert.uv = uvs[i];
-
-			if (uv2s.size() > i)
-				vert.uv2 = uv2s[i];
-
-			_vertices.set(i, vert);
-			*/
 		}
 
 		std::vector<vec3f> uvs;
@@ -1077,60 +1054,72 @@ public:
 
 		std::vector<std::vector<int> > uvMap;
 
-		//_indices.resize(indices.size());
 		for (int i = 0; i < pindices.size(); i += 3) {
-			//_indices.set(i, indices[i]);
-
 			Triangle t;
 
-			t.v[0] = pindices[i];
-			t.v[1] = pindices[i + 1];
-			t.v[2] = pindices[i + 2];
+			int i0 = pindices[i];
+			int i1 = pindices[i + 1];
+			int i2 = pindices[i + 2];
+
+			t.v[0] = i0;
+			t.v[1] = i1;
+			t.v[2] = i2;
+
 			t.attr = 0;
 
-			if (has_uv) {
-				std::vector<int> indices;
-				indices.push_back(pindices[i]);
-				indices.push_back(pindices[i + 1]);
-				indices.push_back(pindices[i + 2]);
-				uvMap.push_back(indices);
-
-				t.attr |= TEXCOORD;
+			if ((_format & VisualServer::ARRAY_FORMAT_COLOR) != 0) {
+				t.color[0] = pcolors[i0];
+				t.color[1] = pcolors[i1];
+				t.color[2] = pcolors[i2];
 			}
+
+			if ((_format & VisualServer::ARRAY_FORMAT_NORMAL) != 0) {
+				Vector3 v = pnormals[i0];
+
+				vec3f vn(v.x, v.y, v.z);
+
+				t.n = vn;
+			}
+
+			if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0) {
+				Vector2 tv0 = puvs[i0];
+				Vector2 tv1 = puvs[i1];
+				Vector2 tv2 = puvs[i2];
+
+				t.uvs[0] = vec3f(tv0.x, tv0.y, 0);
+				t.uvs[1] = vec3f(tv1.x, tv1.y, 0);
+				t.uvs[2] = vec3f(tv2.x, tv2.y, 0);
+			}
+
+			if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0) {
+				Vector2 tv0 = puvs[i0];
+				Vector2 tv1 = puvs[i1];
+				Vector2 tv2 = puvs[i2];
+
+				t.uv2s[0] = vec3f(tv0.x, tv0.y, 0);
+				t.uv2s[1] = vec3f(tv1.x, tv1.y, 0);
+				t.uv2s[2] = vec3f(tv2.x, tv2.y, 0);
+			}
+
+			std::vector<int> indices;
+			indices.push_back(pindices[i]);
+			indices.push_back(pindices[i + 1]);
+			indices.push_back(pindices[i + 2]);
+			uvMap.push_back(indices);
+
+			t.attr |= TEXCOORD;
 
 			t.material = 0;
 			//geo.triangles.push_back ( tri );
 			triangles.push_back(t);
-			//state_before = state;
-			//state ='f';
 		}
 
-		/*
-		int triangle_count = _indices.size() / 3;
-		_mu_triangles.resize(triangle_count);
-
-		for (int i = 0; i < triangle_count; ++i) {
-			int offset = i * 3;
-			int v0 = _indices[offset];
-			int v1 = _indices[offset + 1];
-			int v2 = _indices[offset + 2];
-			_mu_triangles.set(i, MUTriangle(v0, v1, v2, 0));
-		}
-*/
-
-		/*
-		_mu_vertices.resize(_vertices.size());
-		for (int i = 0; i < _vertices.size(); ++i) {
-			_mu_vertices.set(i, MUVertex(_vertices[i]));
-		}*/
-
-		if (uvs.size()) {
-			for (int i = 0; i < triangles.size(); ++i) {
-				for (int j = 0; j < 3; ++j)
-					triangles[i]
-							.uvs[j] = uvs[uvMap[i][j]];
-			}
-		}
+		//if (uvs.size()) {
+		//	for (int i = 0; i < triangles.size(); ++i) {
+		//		for (int j = 0; j < 3; ++j)
+		//			triangles[i].uvs[j] = uvs[uvMap[i][j]];
+		//	}
+		//}
 	}
 
 	Array get_arrays() {
@@ -1138,66 +1127,114 @@ public:
 
 		arr.resize(ArrayMesh::ARRAY_MAX);
 
-		PoolVector<Vector3> vertices;
-		PoolVector<Vector3> normals;
-		PoolVector<Color> colors;
-		PoolVector<Vector2> uvs;
-		PoolVector<Vector2> uv2s;
-		PoolVector<int> indices;
-		/*
-		vertices.resize(_mu_vertices.size());
+		PoolVector<Vector3> pvertices;
+		PoolVector<Vector3> pnormals;
+		PoolVector<Color> pcolors;
+		PoolVector<Vector2> puvs;
+		PoolVector<Vector2> puv2s;
+		PoolVector<int> pindices;
 
-		if ((_format & VisualServer::ARRAY_FORMAT_NORMAL) != 0)
-			normals.resize(_mu_vertices.size());
+		pvertices.resize(vertices.size());
+		for (int i = 0; i < pvertices.size(); ++i) {
+			Vector3 v;
+			vec3f vf = vertices[i].p;
+			v.x = vf.x;
+			v.y = vf.y;
+			v.z = vf.z;
 
-		if ((_format & VisualServer::ARRAY_FORMAT_COLOR) != 0)
-			colors.resize(_mu_vertices.size());
-
-		if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0)
-			uvs.resize(_mu_vertices.size());
-
-		if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0)
-			uv2s.resize(_mu_vertices.size());
-
-		for (int i = 0; i < vertices.size(); ++i) {
-			vertices.set(i, _mu_vertices[i].vertex.vertex);
+			pvertices.set(i, v);
 		}
 
-		for (int i = 0; i < normals.size(); ++i) {
-			normals.set(i, _mu_vertices[i].vertex.normal);
+		if ((_format & VisualServer::ARRAY_FORMAT_COLOR) != 0) {
+			pcolors.resize(pvertices.size());
+
+			for (int i = 0; i < triangles.size(); ++i) {
+				Triangle t = triangles[i];
+
+				if (!t.deleted) {
+					pcolors.set(t.v[0], t.color[0]);
+					pcolors.set(t.v[1], t.color[1]);
+					pcolors.set(t.v[2], t.color[2]);
+				}
+			}
+
+			arr.set(ArrayMesh::ARRAY_COLOR, pcolors);
 		}
 
-		for (int i = 0; i < colors.size(); ++i) {
-			colors.set(i, _mu_vertices[i].vertex.color);
+		if ((_format & VisualServer::ARRAY_FORMAT_NORMAL) != 0) {
+			pnormals.resize(pvertices.size());
+
+			for (int i = 0; i < triangles.size(); ++i) {
+				Triangle t = triangles[i];
+
+				if (!t.deleted) {
+					//Vector3 v(t.n.x, t.n.y, t.n.z);
+					Vector3 v(0, 1, 0);
+
+					pnormals.set(t.v[0], v);
+					pnormals.set(t.v[1], v);
+					pnormals.set(t.v[2], v);
+				}
+			}
+
+			arr.set(ArrayMesh::ARRAY_NORMAL, pnormals);
 		}
 
-		for (int i = 0; i < uvs.size(); ++i) {
-			uvs.set(i, _mu_vertices[i].vertex.uv);
+		if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0) {
+			puvs.resize(pvertices.size());
+
+			for (int i = 0; i < triangles.size(); ++i) {
+				Triangle t = triangles[i];
+
+				if (!t.deleted) {
+					Vector2 v1(t.uvs[0].x, t.uvs[0].y);
+					Vector2 v2(t.uvs[1].x, t.uvs[1].y);
+					Vector2 v3(t.uvs[2].x, t.uvs[2].y);
+
+					puvs.set(t.v[0], v1);
+					puvs.set(t.v[1], v2);
+					puvs.set(t.v[2], v3);
+				}
+			}
+
+			arr.set(ArrayMesh::ARRAY_TEX_UV, puvs);
 		}
 
-		for (int i = 0; i < uv2s.size(); ++i) {
-			uv2s.set(i, _mu_vertices[i].vertex.uv2);
+		if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0) {
+			puv2s.resize(pvertices.size());
+
+			for (int i = 0; i < triangles.size(); ++i) {
+				Triangle t = triangles[i];
+
+				if (!t.deleted) {
+					Vector2 v1(t.uv2s[0].x, t.uv2s[0].y);
+					Vector2 v2(t.uv2s[1].x, t.uv2s[1].y);
+					Vector2 v3(t.uv2s[2].x, t.uv2s[2].y);
+
+					puv2s.set(t.v[0], v1);
+					puv2s.set(t.v[1], v2);
+					puv2s.set(t.v[2], v3);
+				}
+			}
+
+			arr.set(ArrayMesh::ARRAY_TEX_UV2, puv2s);
 		}
 
-		indices.resize(_mu_triangles.size() * 3);
-		for (int i = 0; i < _mu_triangles.size(); ++i) {
-			MUTriangle t = _mu_triangles[i];
+		//pindices.resize(_mu_triangles.size() * 3);
+		for (int i = 0; i < triangles.size(); ++i) {
+			Triangle t = triangles[i];
 
-			int offset = i * 3;
+			if (!t.deleted) {
+				pindices.push_back(t.v[0]);
+				pindices.push_back(t.v[1]);
+				pindices.push_back(t.v[2]);
 
-			indices.set(offset, t.v0);
-			indices.set(offset + 1, t.v1);
-			indices.set(offset + 2, t.v2);
-
-			indices.set(i, _indices[i]);
+				//print_error(String::num(t.v[0]) + " " + String::num(t.v[1]) + " " + String::num(t.v[2]) + " ");
+			}
 		}
-*/
-		arr.set(ArrayMesh::ARRAY_VERTEX, vertices);
-		arr.set(ArrayMesh::ARRAY_NORMAL, normals);
-		arr.set(ArrayMesh::ARRAY_COLOR, colors);
-		arr.set(ArrayMesh::ARRAY_TEX_UV, uvs);
-		arr.set(ArrayMesh::ARRAY_TEX_UV2, uv2s);
-		arr.set(ArrayMesh::ARRAY_INDEX, indices);
+
+		arr.set(ArrayMesh::ARRAY_VERTEX, pvertices);
+		arr.set(ArrayMesh::ARRAY_INDEX, pindices);
 
 		return arr;
 	}
@@ -1218,7 +1255,7 @@ public:
 		refs.clear();
 		materials.clear();
 	}
-};
+}; // namespace Simplify
 
 } // namespace Simplify
 
