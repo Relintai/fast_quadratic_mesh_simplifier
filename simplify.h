@@ -523,9 +523,15 @@ public:
 			// remove vertices & mark deleted triangles
 			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle &t = triangles[i];
-				if (t.err[3] > threshold) continue;
-				if (t.deleted) continue;
-				if (t.dirty) continue;
+
+				if (t.err[3] > threshold)
+					continue;
+
+				if (t.deleted)
+					continue;
+
+				if (t.dirty)
+					continue;
 
 				for (int j = 0; j < 3; ++j)
 					if (t.err[j] < threshold) {
@@ -535,7 +541,8 @@ public:
 						Vertex &v1 = vertices[i1];
 
 						// Border check
-						if (v0.border != v1.border) continue;
+						if (v0.border != v1.border)
+							continue;
 
 						// Compute vertex to collapse to
 						vec3f p;
@@ -545,12 +552,15 @@ public:
 						deleted1.resize(v1.tcount); // normals temporarily
 
 						// don't remove if flipped
-						if (flipped(p, i0, i1, v0, v1, deleted0)) continue;
-						if (flipped(p, i1, i0, v1, v0, deleted1)) continue;
+						if (flipped(p, i0, i1, v0, v1, deleted0))
+							continue;
+
+						if (flipped(p, i1, i0, v1, v0, deleted1))
+							continue;
 
 						if ((t.attr & TEXCOORD) == TEXCOORD) {
-							//	update_uvs(i0, v0, p, deleted0);
-							//	update_uvs(i0, v1, p, deleted1);
+							update_uvs(i0, v0, p, deleted0);
+							update_uvs(i0, v1, p, deleted1);
 						}
 
 						// not flipped, so remove edge
@@ -566,15 +576,19 @@ public:
 						if (tcount <= v0.tcount) {
 							// save ram
 							if (tcount) memcpy(&refs[v0.tstart], &refs[tstart], tcount * sizeof(Ref));
-						} else
+						} else {
 							// append
 							v0.tstart = tstart;
+						}
 
 						v0.tcount = tcount;
 						break;
 					}
 			}
-			if (deleted_triangles <= 0) break;
+
+			if (deleted_triangles <= 0)
+				break;
+
 			deleted_triangles = 0;
 		} //for each iteration
 		// clean up mesh
@@ -724,6 +738,7 @@ public:
 
 		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			Triangle &t = triangles[i];
+
 			for (int j = 0; j < 3; ++j) {
 				vertices[t.v[j]].tcount++;
 			}
@@ -829,7 +844,7 @@ public:
 
 		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			Triangle &t = triangles[i];
-
+			//ok
 			//print_error("b " + String::num(t.v[0]) + " " + String::num(t.v[1]) + " " + String::num(t.v[2]) + " ");
 
 			for (int j = 0; j < 3; ++j) {
