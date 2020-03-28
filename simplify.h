@@ -325,6 +325,7 @@ public:
 		TEXCOORD = 4,
 		COLOR = 8
 	};
+
 	struct Triangle {
 		int v[3];
 		double err[4];
@@ -335,12 +336,14 @@ public:
 		Color color[3];
 		int material;
 	};
+
 	struct Vertex {
 		vec3f p;
 		int tstart, tcount;
 		SymetricMatrix q;
 		int border;
 	};
+
 	struct Ref {
 		int tid, tvertex;
 	};
@@ -380,7 +383,7 @@ public:
 
 	void simplify_mesh(int target_count, double agressiveness = 7, bool verbose = false) {
 		// init
-		for (int i = 0; i < triangles.size(); ++i) {
+		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			triangles[i].deleted = 0;
 		}
 
@@ -399,8 +402,9 @@ public:
 			}
 
 			// clear dirty flag
-			for (int i = 0; i < triangles.size(); ++i)
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				triangles[i].dirty = 0;
+			}
 
 			//
 			// All triangles with edges below the threshold will be removed
@@ -416,13 +420,19 @@ public:
 			}
 
 			// remove vertices & mark deleted triangles
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle &t = triangles[i];
-				if (t.err[3] > threshold) continue;
-				if (t.deleted) continue;
-				if (t.dirty) continue;
 
-				for (int j = 0; j < 3; ++j)
+				if (t.err[3] > threshold)
+					continue;
+
+				if (t.deleted)
+					continue;
+
+				if (t.dirty)
+					continue;
+
+				for (int j = 0; j < 3; ++j) {
 					if (t.err[j] < threshold) {
 
 						int i0 = t.v[j];
@@ -430,7 +440,8 @@ public:
 						int i1 = t.v[(j + 1) % 3];
 						Vertex &v1 = vertices[i1];
 						// Border check
-						if (v0.border != v1.border) continue;
+						if (v0.border != v1.border)
+							continue;
 
 						// Compute vertex to collapse to
 						vec3f p;
@@ -438,9 +449,12 @@ public:
 						deleted0.resize(v0.tcount); // normals temporarily
 						deleted1.resize(v1.tcount); // normals temporarily
 						// don't remove if flipped
-						if (flipped(p, i0, i1, v0, v1, deleted0)) continue;
 
-						if (flipped(p, i1, i0, v1, v0, deleted1)) continue;
+						if (flipped(p, i0, i1, v0, v1, deleted0))
+							continue;
+
+						if (flipped(p, i1, i0, v1, v0, deleted1))
+							continue;
 
 						if ((t.attr & TEXCOORD) == TEXCOORD) {
 							update_uvs(i0, v0, p, deleted0);
@@ -460,13 +474,16 @@ public:
 						if (tcount <= v0.tcount) {
 							// save ram
 							if (tcount) memcpy(&refs[v0.tstart], &refs[tstart], tcount * sizeof(Ref));
-						} else
+						} else {
 							// append
 							v0.tstart = tstart;
+						}
 
 						v0.tcount = tcount;
 						break;
 					}
+				}
+
 				// done?
 				if (triangle_count - deleted_triangles <= target_count) break;
 			}
@@ -477,20 +494,20 @@ public:
 
 	void simplify_mesh_lossless(bool verbose = false) {
 		// init
-		for (int i = 0; i < triangles.size(); ++i)
+		for (unsigned int i = 0; i < triangles.size(); ++i)
 			triangles[i].deleted = 0;
 
 		// main iteration loop
 		int deleted_triangles = 0;
 		std::vector<int> deleted0, deleted1;
-		int triangle_count = triangles.size();
+		//unsigned int triangle_count = triangles.size();
 		//int iteration = 0;
 		//loop(iteration,0,100)
 		for (int iteration = 0; iteration < 9999; iteration++) {
 			// update mesh constantly
 			update_mesh(iteration);
 			// clear dirty flag
-			for (int i = 0; i < triangles.size(); ++i)
+			for (unsigned int i = 0; i < triangles.size(); ++i)
 				triangles[i].dirty = 0;
 			//
 			// All triangles with edges below the threshold will be removed
@@ -504,7 +521,7 @@ public:
 			}
 
 			// remove vertices & mark deleted triangles
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle &t = triangles[i];
 				if (t.err[3] > threshold) continue;
 				if (t.deleted) continue;
@@ -532,8 +549,8 @@ public:
 						if (flipped(p, i1, i0, v1, v0, deleted1)) continue;
 
 						if ((t.attr & TEXCOORD) == TEXCOORD) {
-							update_uvs(i0, v0, p, deleted0);
-							update_uvs(i0, v1, p, deleted1);
+							//	update_uvs(i0, v0, p, deleted0);
+							//	update_uvs(i0, v1, p, deleted1);
 						}
 
 						// not flipped, so remove edge
@@ -602,8 +619,13 @@ public:
 		for (int k = 0; k < v.tcount; ++k) {
 			Ref &r = refs[v.tstart + k];
 			Triangle &t = triangles[r.tid];
-			if (t.deleted) continue;
-			if (deleted[k]) continue;
+
+			if (t.deleted)
+				continue;
+
+			if (deleted[k])
+				continue;
+
 			vec3f p1 = vertices[t.v[0]].p;
 			vec3f p2 = vertices[t.v[1]].p;
 			vec3f p3 = vertices[t.v[2]].p;
@@ -615,16 +637,22 @@ public:
 
 	void update_triangles(int i0, Vertex &v, std::vector<int> &deleted, int &deleted_triangles) {
 		vec3f p;
+
 		for (int k = 0; k < v.tcount; ++k) {
 			Ref &r = refs[v.tstart + k];
 			Triangle &t = triangles[r.tid];
-			if (t.deleted) continue;
+
+			if (t.deleted)
+				continue;
+
 			if (deleted[k]) {
 				t.deleted = 1;
 				deleted_triangles++;
 				continue;
 			}
+
 			t.v[r.tvertex] = i0;
+
 			t.dirty = 1;
 			t.err[0] = calculate_error(t.v[0], t.v[1], p);
 			t.err[1] = calculate_error(t.v[1], t.v[2], p);
@@ -640,12 +668,15 @@ public:
 		if (iteration > 0) // compact triangles
 		{
 			int dst = 0;
-			for (int i = 0; i < triangles.size(); ++i)
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				if (!triangles[i].deleted) {
 					triangles[dst++] = triangles[i];
 				}
+			}
+
 			triangles.resize(dst);
 		}
+
 		//
 		// Init Quadrics by Plane & Edge Errors
 		//
@@ -654,44 +685,52 @@ public:
 		// but mostly improves the result for closed meshes
 		//
 		if (iteration == 0) {
-			for (int i = 0; i < vertices.size(); ++i)
-				vertices[i]
-						.q = SymetricMatrix(0.0);
+			for (unsigned int i = 0; i < vertices.size(); ++i) {
+				vertices[i].q = SymetricMatrix(0.0);
+			}
 
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle &t = triangles[i];
 				vec3f n, p[3];
-				for (int j = 0; j < 3; ++j)
+				for (int j = 0; j < 3; ++j) {
 					p[j] = vertices[t.v[j]].p;
+				}
+
 				n.cross(p[1] - p[0], p[2] - p[0]);
 				n.normalize();
 				t.n = n;
-				for (int j = 0; j < 3; ++j)
-					vertices[t.v[j]].q =
-							vertices[t.v[j]].q + SymetricMatrix(n.x, n.y, n.z, -n.dot(p[0]));
+				for (int j = 0; j < 3; ++j) {
+					vertices[t.v[j]].q = vertices[t.v[j]].q + SymetricMatrix(n.x, n.y, n.z, -n.dot(p[0]));
+				}
 			}
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				// Calc Edge Error
 				Triangle &t = triangles[i];
 				vec3f p;
-				for (int j = 0; j < 3; ++j)
+
+				for (int j = 0; j < 3; ++j) {
 					t.err[j] = calculate_error(t.v[j], t.v[(j + 1) % 3], p);
+				}
+
 				t.err[3] = min(t.err[0], min(t.err[1], t.err[2]));
 			}
 		}
 
 		// Init Reference ID list
-		for (int i = 0; i < vertices.size(); ++i) {
+		for (unsigned int i = 0; i < vertices.size(); ++i) {
 			vertices[i].tstart = 0;
 			vertices[i].tcount = 0;
 		}
-		for (int i = 0; i < triangles.size(); ++i) {
+
+		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			Triangle &t = triangles[i];
-			for (int j = 0; j < 3; ++j)
+			for (int j = 0; j < 3; ++j) {
 				vertices[t.v[j]].tcount++;
+			}
 		}
+
 		int tstart = 0;
-		for (int i = 0; i < vertices.size(); ++i) {
+		for (unsigned int i = 0; i < vertices.size(); ++i) {
 			Vertex &v = vertices[i];
 			v.tstart = tstart;
 			tstart += v.tcount;
@@ -700,9 +739,10 @@ public:
 
 		// Write References
 		refs.resize(triangles.size() * 3);
-		for (int i = 0; i < triangles.size(); ++i) {
+		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			Triangle &t = triangles[i];
-			for (int j = 0; j < 3; ++j) {
+
+			for (unsigned int j = 0; j < 3; ++j) {
 				Vertex &v = vertices[t.v[j]];
 				refs[v.tstart + v.tcount].tid = i;
 				refs[v.tstart + v.tcount].tvertex = j;
@@ -714,34 +754,44 @@ public:
 		if (iteration == 0) {
 			std::vector<int> vcount, vids;
 
-			for (int i = 0; i < vertices.size(); ++i)
-				vertices[i]
-						.border = 0;
+			for (unsigned int i = 0; i < vertices.size(); ++i) {
+				vertices[i].border = 0;
+			}
 
-			for (int i = 0; i < vertices.size(); ++i) {
+			for (unsigned int i = 0; i < vertices.size(); ++i) {
 				Vertex &v = vertices[i];
 				vcount.clear();
 				vids.clear();
+
 				for (int j = 0; j < v.tcount; ++j) {
-					int k = refs[v.tstart + j].tid;
-					Triangle &t = triangles[k];
+					int kt = refs[v.tstart + j].tid;
+					Triangle &t = triangles[kt];
+
 					for (int k = 0; k < 3; ++k) {
-						int ofs = 0, id = t.v[k];
+						unsigned int ofs = 0;
+						int id = t.v[k];
+
 						while (ofs < vcount.size()) {
-							if (vids[ofs] == id) break;
+							if (vids[ofs] == id)
+								break;
+
 							ofs++;
 						}
+
 						if (ofs == vcount.size()) {
 							vcount.push_back(1);
 							vids.push_back(id);
-						} else
+						} else {
 							vcount[ofs]++;
+						}
 					}
 				}
-				for (int j = 0; j < vcount.size(); ++j)
-					if (vcount[j] == 1)
-						vertices[vids[j]]
-								.border = 1;
+
+				for (unsigned int j = 0; j < vcount.size(); ++j) {
+					if (vcount[j] == 1) {
+						vertices[vids[j]].border = 1;
+					}
+				}
 			}
 		}
 	}
@@ -750,28 +800,43 @@ public:
 
 	void compact_mesh() {
 		int dst = 0;
-		for (int i = 0; i < vertices.size(); ++i) {
+
+		for (unsigned int i = 0; i < vertices.size(); ++i) {
 			vertices[i].tcount = 0;
 		}
-		for (int i = 0; i < triangles.size(); ++i)
+
+		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			if (!triangles[i].deleted) {
 				Triangle &t = triangles[i];
+
 				triangles[dst++] = t;
-				for (int j = 0; j < 3; ++j)
+
+				for (int j = 0; j < 3; ++j) {
 					vertices[t.v[j]].tcount = 1;
+				}
 			}
+		}
+
 		triangles.resize(dst);
 		dst = 0;
-		for (int i = 0; i < vertices.size(); ++i)
+		for (unsigned int i = 0; i < vertices.size(); ++i) {
 			if (vertices[i].tcount) {
 				vertices[i].tstart = dst;
 				vertices[dst].p = vertices[i].p;
 				dst++;
 			}
-		for (int i = 0; i < triangles.size(); ++i) {
+		}
+
+		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			Triangle &t = triangles[i];
-			for (int j = 0; j < 3; ++j)
+
+			//print_error("b " + String::num(t.v[0]) + " " + String::num(t.v[1]) + " " + String::num(t.v[2]) + " ");
+
+			for (int j = 0; j < 3; ++j) {
 				t.v[j] = vertices[t.v[j]].tstart;
+			}
+
+			//print_error("a " + String::num(t.v[0]) + " " + String::num(t.v[1]) + " " + String::num(t.v[2]) + " ");
 		}
 		vertices.resize(dst);
 	}
@@ -1148,7 +1213,7 @@ public:
 		if ((_format & VisualServer::ARRAY_FORMAT_COLOR) != 0) {
 			pcolors.resize(pvertices.size());
 
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle t = triangles[i];
 
 				if (!t.deleted) {
@@ -1164,7 +1229,7 @@ public:
 		if ((_format & VisualServer::ARRAY_FORMAT_NORMAL) != 0) {
 			pnormals.resize(pvertices.size());
 
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle t = triangles[i];
 
 				if (!t.deleted) {
@@ -1183,7 +1248,7 @@ public:
 		if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0) {
 			puvs.resize(pvertices.size());
 
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle t = triangles[i];
 
 				if (!t.deleted) {
@@ -1203,7 +1268,7 @@ public:
 		if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0) {
 			puv2s.resize(pvertices.size());
 
-			for (int i = 0; i < triangles.size(); ++i) {
+			for (unsigned int i = 0; i < triangles.size(); ++i) {
 				Triangle t = triangles[i];
 
 				if (!t.deleted) {
@@ -1221,7 +1286,7 @@ public:
 		}
 
 		//pindices.resize(_mu_triangles.size() * 3);
-		for (int i = 0; i < triangles.size(); ++i) {
+		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			Triangle t = triangles[i];
 
 			if (!t.deleted) {
