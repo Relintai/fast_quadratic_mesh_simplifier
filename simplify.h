@@ -1084,8 +1084,7 @@ public:
 				Triangle t = triangles[i];
 
 				if (!t.deleted) {
-					//Vector3 v(t.n.x, t.n.y, t.n.z);
-					Vector3 v(0, 1, 0);
+					Vector3 v(t.n.x, t.n.y, t.n.z);
 
 					pnormals.set(t.v[0], v);
 					pnormals.set(t.v[1], v);
