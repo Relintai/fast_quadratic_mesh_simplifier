@@ -416,7 +416,7 @@ public:
 
 			// target number of triangles reached ? Then break
 			if ((verbose) && (iteration % 5 == 0)) {
-				printf("iteration %d - triangles %d threshold %g\n", iteration, triangle_count - deleted_triangles, threshold);
+				print_line("iteration " + String::num(iteration) + " - triangles " + String::num(triangle_count - deleted_triangles) + " threshold " + String::num(threshold));
 			}
 
 			// remove vertices & mark deleted triangles
@@ -517,7 +517,7 @@ public:
 			//
 			double threshold = DBL_EPSILON; //1.0E-3 EPS;
 			if (verbose) {
-				printf("lossless iteration %d\n", iteration);
+				print_line("lossless iteration " + String::num(iteration));
 			}
 
 			// remove vertices & mark deleted triangles
@@ -916,169 +916,6 @@ public:
 		*(end + 1) = 0;
 
 		return str;
-	}
-
-	//Option : Load OBJ
-	void load_obj(const char *filename, bool process_uv = false) {
-		/*
-		vertices.clear();
-		triangles.clear();
-		//printf ( "Loading Objects %s ... \n",filename);
-		FILE *fn;
-		if (filename == NULL) return;
-		if ((char)filename[0] == 0) return;
-		if ((fn = fopen(filename, "rb")) == NULL) {
-			printf("File %s not found!\n", filename);
-			return;
-		}
-		char line[1000];
-		memset(line, 0, 1000);
-		int vertex_cnt = 0;
-		int material = -1;
-		std::map<std::string, int> material_map;
-		std::vector<vec3f> uvs;
-		std::vector<std::vector<int> > uvMap;
-
-		while (fgets(line, 1000, fn) != NULL) {
-			Vertex v;
-			vec3f uv;
-
-			if (strncmp(line, "mtllib", 6) == 0) {
-				mtllib = trimwhitespace(&line[7]);
-			}
-			if (strncmp(line, "usemtl", 6) == 0) {
-				std::string usemtl = trimwhitespace(&line[7]);
-				if (material_map.find(usemtl) == material_map.end()) {
-					material_map[usemtl] = materials.size();
-					materials.push_back(usemtl);
-				}
-				material = material_map[usemtl];
-			}
-
-			if (line[0] == 'v' && line[1] == 't') {
-				if (line[2] == ' ')
-					if (sscanf(line, "vt %lf %lf",
-								&uv.x, &uv.y) == 2) {
-						uv.z = 0;
-						uvs.push_back(uv);
-					} else if (sscanf(line, "vt %lf %lf %lf",
-									   &uv.x, &uv.y, &uv.z) == 3) {
-						uvs.push_back(uv);
-					}
-			} else if (line[0] == 'v') {
-				if (line[1] == ' ')
-					if (sscanf(line, "v %lf %lf %lf",
-								&v.p.x, &v.p.y, &v.p.z) == 3) {
-						vertices.push_back(v);
-					}
-			}
-			int integers[9];
-			if (line[0] == 'f') {
-				Triangle t;
-				bool tri_ok = false;
-				bool has_uv = false;
-
-				if (sscanf(line, "f %d %d %d",
-							&integers[0], &integers[1], &integers[2]) == 3) {
-					tri_ok = true;
-				} else if (sscanf(line, "f %d// %d// %d//",
-								   &integers[0], &integers[1], &integers[2]) == 3) {
-					tri_ok = true;
-				} else if (sscanf(line, "f %d//%d %d//%d %d//%d",
-								   &integers[0], &integers[3],
-								   &integers[1], &integers[4],
-								   &integers[2], &integers[5]) == 6) {
-					tri_ok = true;
-				} else if (sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
-								   &integers[0], &integers[6], &integers[3],
-								   &integers[1], &integers[7], &integers[4],
-								   &integers[2], &integers[8], &integers[5]) == 9) {
-					tri_ok = true;
-					has_uv = true;
-				} else {
-					printf("unrecognized sequence\n");
-					printf("%s\n", line);
-					while (1)
-						;
-				}
-				if (tri_ok) {
-					t.v[0] = integers[0] - 1 - vertex_cnt;
-					t.v[1] = integers[1] - 1 - vertex_cnt;
-					t.v[2] = integers[2] - 1 - vertex_cnt;
-					t.attr = 0;
-
-					if (process_uv && has_uv) {
-						std::vector<int> indices;
-						indices.push_back(integers[6] - 1 - vertex_cnt);
-						indices.push_back(integers[7] - 1 - vertex_cnt);
-						indices.push_back(integers[8] - 1 - vertex_cnt);
-						uvMap.push_back(indices);
-						t.attr |= TEXCOORD;
-					}
-
-					t.material = material;
-					//geo.triangles.push_back ( tri );
-					triangles.push_back(t);
-					//state_before = state;
-					//state ='f';
-				}
-			}
-		}
-
-		if (process_uv && uvs.size()) {
-			for (int i = 0; i < triangles.size(); ++i) {
-				for (int j = 0; j < 3; ++j)
-						triangles[i]
-								.uvs[j] = uvs[uvMap[i][j]];
-			}
-		}
-
-		fclose(fn);
-*/
-		//printf("load_obj: vertices = %lu, triangles = %lu, uvs = %lu\n", vertices.size(), triangles.size(), uvs.size() );
-	} // load_obj()
-
-	// Optional : Store as OBJ
-
-	void write_obj(const char *filename) {
-		/*
-		FILE *file = fopen(filename, "w");
-		int cur_material = -1;
-		bool has_uv = (triangles.size() && (triangles[0].attr & TEXCOORD) == TEXCOORD);
-
-		if (!file) {
-			printf("write_obj: can't write data file \"%s\".\n", filename);
-			exit(0);
-		}
-		if (!mtllib.empty()) {
-			fprintf(file, "mtllib %s\n", mtllib.c_str());
-		}
-		for (int i = 0; i < vertices.size(); ++i) {
-			//fprintf(file, "v %lf %lf %lf\n", vertices[i].p.x,vertices[i].p.y,vertices[i].p.z);
-			fprintf(file, "v %g %g %g\n", vertices[i].p.x, vertices[i].p.y, vertices[i].p.z); //more compact: remove trailing zeros
-		}
-		if (has_uv) {
-			for (int i = 0; i < triangles.size(); ++i) if (!triangles[i].deleted) {
-				fprintf(file, "vt %g %g\n", triangles[i].uvs[0].x, triangles[i].uvs[0].y);
-				fprintf(file, "vt %g %g\n", triangles[i].uvs[1].x, triangles[i].uvs[1].y);
-				fprintf(file, "vt %g %g\n", triangles[i].uvs[2].x, triangles[i].uvs[2].y);
-			}
-		}
-		int uv = 1;
-		for (int i = 0; i < triangles.size(); ++i) if (!triangles[i].deleted) {
-			if (triangles[i].material != cur_material) {
-				cur_material = triangles[i].material;
-				fprintf(file, "usemtl %s\n", materials[triangles[i].material].c_str());
-			}
-			if (has_uv) {
-				fprintf(file, "f %d/%d %d/%d %d/%d\n", triangles[i].v[0] + 1, uv, triangles[i].v[1] + 1, uv + 1, triangles[i].v[2] + 1, uv + 2);
-				uv += 3;
-			} else {
-				fprintf(file, "f %d %d %d\n", triangles[i].v[0] + 1, triangles[i].v[1] + 1, triangles[i].v[2] + 1);
-			}
-			//fprintf(file, "f %d// %d// %d//\n", triangles[i].v[0]+1, triangles[i].v[1]+1, triangles[i].v[2]+1); //more compact: remove trailing zeros
-		}
-		fclose(file); */
 	}
 
 	void initialize(const Array &arrays) {
