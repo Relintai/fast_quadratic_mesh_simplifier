@@ -319,7 +319,7 @@ struct BorderVertex {
 	int hash;
 };
 
-bool compare_border_vertex(const BorderVertex &i1, const BorderVertex &i2) {
+static bool compare_border_vertex(const BorderVertex &i1, const BorderVertex &i2) {
 	return (i1.hash < i2.hash);
 }
 
