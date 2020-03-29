@@ -312,6 +312,11 @@ public:
 };
 ///////////////////////////////////////////
 
+struct BorderVertex {
+	int index;
+	int hash;
+};
+
 class FQMS {
 
 public:
@@ -331,6 +336,8 @@ public:
 		int tstart, tcount;
 		SymetricMatrix q;
 		int border;
+		bool seam;
+		bool foldover;
 	};
 
 	struct Ref {
@@ -783,8 +790,16 @@ public:
 			std::vector<int> vcount, vids;
 
 			for (unsigned int i = 0; i < vertices.size(); ++i) {
-				vertices[i].border = 0;
+				Vertex &v = vertices[i];
+
+				v.border = 0;
+				v.seam = false;
+				v.foldover = false;
 			}
+
+			int border_vertex_count = 0;
+			double border_min_x = DBL_MIN;
+			double border_max_x = DBL_MAX;
 
 			for (unsigned int i = 0; i < vertices.size(); ++i) {
 				Vertex &v = vertices[i];
@@ -817,8 +832,23 @@ public:
 
 				for (unsigned int j = 0; j < vcount.size(); ++j) {
 					if (vcount[j] == 1) {
-						vertices[vids[j]].border = 1;
+						Vertex &v = vertices[vids[j]];
+
+						v.border = 1;
+						++border_vertex_count;
+
+						if (_enable_smart_link) {
+							if (v.p.x < border_min_x)
+								border_min_x = v.p.x;
+
+							if (v.p.x < border_max_x)
+								border_max_x = v.p.x;
+						}
 					}
+				}
+
+				if (_enable_smart_link) {
+					//std::vector<BorderVertex> border_vertices;
 				}
 			}
 		}
@@ -857,14 +887,10 @@ public:
 
 		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			Triangle &t = triangles[i];
-			//ok
-			//print_error("b " + String::num(t.v[0]) + " " + String::num(t.v[1]) + " " + String::num(t.v[2]) + " ");
 
 			for (int j = 0; j < 3; ++j) {
 				t.v[j] = vertices[t.v[j]].tstart;
 			}
-
-			//print_error("a " + String::num(t.v[0]) + " " + String::num(t.v[1]) + " " + String::num(t.v[2]) + " ");
 		}
 		vertices.resize(dst);
 	}
