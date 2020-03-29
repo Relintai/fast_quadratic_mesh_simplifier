@@ -843,17 +843,17 @@ public:
 
 				for (unsigned int j = 0; j < vcount.size(); ++j) {
 					if (vcount[j] == 1) {
-						Vertex &v = vertices[vids[j]];
+						Vertex &vv = vertices[vids[j]];
 
-						v.border = 1;
+						vv.border = 1;
 						++border_vertex_count;
 
 						if (_enable_smart_link) {
-							if (v.p.x < border_min_x)
-								border_min_x = v.p.x;
+							if (vv.p.x < border_min_x)
+								border_min_x = vv.p.x;
 
-							if (v.p.x < border_max_x)
-								border_max_x = v.p.x;
+							if (vv.p.x < border_max_x)
+								border_max_x = vv.p.x;
 						}
 					}
 				}
@@ -863,13 +863,13 @@ public:
 
 					double border_area_width = border_max_x - border_min_x;
 
-					for (int i = 0; i < vertices.size(); i++) {
-						Vertex &v = vertices[i];
+					for (unsigned int j = 0; j < vertices.size(); j++) {
+						Vertex &vj = vertices[i];
 
 						if (v.border) {
 							BorderVertex bv;
-							bv.hash = static_cast<int>(((((v.p.x - border_min_x) / border_area_width) * 2.0) - 1.0) * INT_MAX);
-							bv.index = i;
+							bv.hash = static_cast<int>(((((vj.p.x - border_min_x) / border_area_width) * 2.0) - 1.0) * INT_MAX);
+							bv.index = j;
 
 							border_vertices.push_back(bv);
 						}
@@ -882,15 +882,15 @@ public:
 					int hash_max_distance = MAX(tdst, 1);
 
 					// Then find identical border vertices and bind them together as one
-					for (int i = 0; i < border_vertices.size(); ++i) {
-						BorderVertex &bv = border_vertices[i];
+					for (unsigned int j = 0; j < border_vertices.size(); ++j) {
+						BorderVertex &bv = border_vertices[j];
 
 						if (bv.index == -1)
 							continue;
 
 						//var myPoint = vertices[myIndex].p;
-						for (int j = i + 1; j < border_vertices.size(); ++j) {
-							BorderVertex &obv = border_vertices[j];
+						for (unsigned int k = i + 1; k < border_vertices.size(); ++k) {
+							BorderVertex &obv = border_vertices[k];
 
 							//int otherIndex = obv.index;
 							//var otherPoint = vertices[otherIndex].p;
@@ -900,17 +900,17 @@ public:
 							else if ((obv.hash - bv.hash) > hash_max_distance) // There is no point to continue beyond this point
 								break;
 
-							Vertex &v = vertices[i];
-							Vertex &ov = vertices[j];
+							Vertex &vj = vertices[j];
+							Vertex &ov = vertices[k];
 
-							double sqr_x = ((v.p.x - ov.p.x) * (v.p.x - ov.p.x));
-							double sqr_y = ((v.p.y - ov.p.y) * (v.p.y - ov.p.y));
-							double sqr_z = ((v.p.z - ov.p.z) * (v.p.z - ov.p.z));
+							double sqr_x = ((vj.p.x - ov.p.x) * (vj.p.x - ov.p.x));
+							double sqr_y = ((vj.p.y - ov.p.y) * (vj.p.y - ov.p.y));
+							double sqr_z = ((vj.p.z - ov.p.z) * (vj.p.z - ov.p.z));
 							double sqr_magnitude = sqr_x + sqr_y + sqr_z;
 
 							if (sqr_magnitude <= _vertex_link_distance) {
 								obv.index = -1; // NOTE: This makes sure that the "other" vertex is not processed again
-								v.border = false;
+								vj.border = false;
 								ov.border = false;
 								/*
 								if (AreUVsTheSame(0, myIndex, otherIndex)) {
