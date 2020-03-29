@@ -315,18 +315,10 @@ public:
 class FQMS {
 
 public:
-	// Global Variables & Strctures
-	enum Attributes {
-		NONE,
-		NORMAL = 2,
-		TEXCOORD = 4,
-		COLOR = 8
-	};
-
 	struct Triangle {
 		int v[3];
 		double err[4];
-		int deleted, dirty, attr;
+		int deleted, dirty;
 		vec3f n;
 		vec3f uvs[3];
 		vec3f uv2s[3];
@@ -352,7 +344,7 @@ public:
 	std::vector<std::string> materials;
 
 	int _max_iteration_count;
-	double _agressiveness;
+	int _max_lossless_iteration_count;
 	bool _enable_smart_link;
 	bool _preserve_border_dges;
 	bool _preserve_uv_seam_edges;
@@ -360,15 +352,7 @@ public:
 	int _format;
 
 	// Helper functions
-	/*
-	double vertex_error(SymetricMatrix q, double x, double y, double z);
-	double calculate_error(int id_v1, int id_v2, vec3f &p_result);
-	bool flipped(vec3f p, int i0, int i1, Vertex &v0, Vertex &v1, std::vector<int> &deleted);
-	void update_uvs(int i0, const Vertex &v, const vec3f &p, std::vector<int> &deleted);
-	void update_triangles(int i0, Vertex &v, std::vector<int> &deleted, int &deleted_triangles);
-	void update_mesh(int iteration);
-	void compact_mesh();
-*/
+
 	//
 	// Main simplification function
 	//
@@ -388,9 +372,8 @@ public:
 		int deleted_triangles = 0;
 		std::vector<int> deleted0, deleted1;
 		int triangle_count = triangles.size();
-		//int iteration = 0;
-		//loop(iteration,0,100)
-		for (int iteration = 0; iteration < 100; iteration++) {
+
+		for (int iteration = 0; iteration < _max_iteration_count; iteration++) {
 			if (triangle_count - deleted_triangles <= target_count) break;
 
 			// update mesh once in a while
@@ -440,6 +423,8 @@ public:
 						if (v0.border != v1.border)
 							continue;
 
+						//if (v0.border || v1.border) continue;
+
 						// Compute vertex to collapse to
 						vec3f p;
 						calculate_error(i0, i1, p);
@@ -453,9 +438,14 @@ public:
 						if (flipped(p, i1, i0, v1, v0, deleted1))
 							continue;
 
-						if ((t.attr & TEXCOORD) == TEXCOORD) {
+						if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0) {
 							update_uvs(i0, v0, p, deleted0);
 							update_uvs(i0, v1, p, deleted1);
+						}
+
+						if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0) {
+							update_uv2s(i0, v0, p, deleted0);
+							update_uv2s(i0, v1, p, deleted1);
 						}
 
 						// not flipped, so remove edge
@@ -498,9 +488,8 @@ public:
 		int deleted_triangles = 0;
 		std::vector<int> deleted0, deleted1;
 		//unsigned int triangle_count = triangles.size();
-		//int iteration = 0;
-		//loop(iteration,0,100)
-		for (int iteration = 0; iteration < 9999; iteration++) {
+
+		for (int iteration = 0; iteration < _max_lossless_iteration_count; iteration++) {
 			// update mesh constantly
 			update_mesh(iteration);
 			// clear dirty flag
@@ -555,9 +544,14 @@ public:
 						if (flipped(p, i1, i0, v1, v0, deleted1))
 							continue;
 
-						if ((t.attr & TEXCOORD) == TEXCOORD) {
+						if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV) != 0) {
 							update_uvs(i0, v0, p, deleted0);
 							update_uvs(i0, v1, p, deleted1);
+						}
+
+						if ((_format & VisualServer::ARRAY_FORMAT_TEX_UV2) != 0) {
+							update_uv2s(i0, v0, p, deleted0);
+							update_uv2s(i0, v1, p, deleted1);
 						}
 
 						// not flipped, so remove edge
@@ -642,7 +636,27 @@ public:
 			vec3f p1 = vertices[t.v[0]].p;
 			vec3f p2 = vertices[t.v[1]].p;
 			vec3f p3 = vertices[t.v[2]].p;
+
 			t.uvs[r.tvertex] = interpolate(p, p1, p2, p3, t.uvs);
+		}
+	}
+
+	void update_uv2s(int i0, const Vertex &v, const vec3f &p, std::vector<int> &deleted) {
+		for (int k = 0; k < v.tcount; ++k) {
+			Ref &r = refs[v.tstart + k];
+			Triangle &t = triangles[r.tid];
+
+			if (t.deleted)
+				continue;
+
+			if (deleted[k])
+				continue;
+
+			vec3f p1 = vertices[t.v[0]].p;
+			vec3f p2 = vertices[t.v[1]].p;
+			vec3f p3 = vertices[t.v[2]].p;
+
+			t.uv2s[r.tvertex] = interpolate(p, p1, p2, p3, t.uv2s);
 		}
 	}
 
@@ -968,7 +982,7 @@ public:
 		if ((pindices.size() % 3) != 0)
 			ERR_FAIL_MSG("The index array length must be a multiple of 3 in order to represent triangles.");
 
-		std::vector<std::vector<int> > uvMap;
+		//std::vector<std::vector<int> > uvMap;
 
 		for (int i = 0; i < pindices.size(); i += 3) {
 			Triangle t;
@@ -980,8 +994,6 @@ public:
 			t.v[0] = i0;
 			t.v[1] = i1;
 			t.v[2] = i2;
-
-			t.attr = 0;
 
 			if ((_format & VisualServer::ARRAY_FORMAT_COLOR) != 0) {
 				t.color[0] = pcolors[i0];
@@ -1017,16 +1029,13 @@ public:
 				t.uv2s[2] = vec3f(tv2.x, tv2.y, 0);
 			}
 
-			std::vector<int> indices;
-			indices.push_back(pindices[i]);
-			indices.push_back(pindices[i + 1]);
-			indices.push_back(pindices[i + 2]);
-			uvMap.push_back(indices);
-
-			t.attr |= TEXCOORD;
+			//std::vector<int> indices;
+			//indices.push_back(pindices[i]);
+			//indices.push_back(pindices[i + 1]);
+			//indices.push_back(pindices[i + 2]);
+			//uvMap.push_back(indices);
 
 			t.material = 0;
-			//geo.triangles.push_back ( tri );
 			triangles.push_back(t);
 		}
 
@@ -1156,7 +1165,7 @@ public:
 
 	FQMS() {
 		_max_iteration_count = 100;
-		_agressiveness = 7.0;
+		_max_lossless_iteration_count = 9990;
 		_enable_smart_link = true;
 		_preserve_border_dges = false;
 		_preserve_uv_seam_edges = false;

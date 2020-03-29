@@ -39,20 +39,23 @@ public:
 	int get_max_iteration_count() const;
 	void set_max_iteration_count(const int value);
 
-	double get_agressiveness() const;
-	void set_agressiveness(const double value);
+	int get_max_lossless_iteration_count() const;
+	void set_max_lossless_iteration_count(const int value);
 
 	bool get_enable_smart_link() const;
 	void set_enable_smart_link(const bool value);
 
-	bool get_preserve_border_dges() const;
-	void set_preserve_border_dges(const bool value);
+	bool get_preserve_border_edges() const;
+	void set_preserve_border_edges(const bool value);
 
 	bool get_preserve_uv_seam_edges() const;
 	void set_preserve_uv_seam_edges(const bool value);
 
 	bool get_preserve_uv_foldover_edges() const;
 	void set_preserve_uv_foldover_edges(const bool value);
+
+	int get_format() const;
+	void set_format(const int value);
 
 	void initialize(const Array &arrays);
 	Array get_arrays();
