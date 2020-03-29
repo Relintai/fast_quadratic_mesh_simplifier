@@ -353,8 +353,6 @@ public:
 	std::vector<Triangle> triangles;
 	std::vector<Vertex> vertices;
 	std::vector<Ref> refs;
-	std::string mtllib;
-	std::vector<std::string> materials;
 
 	int _max_iteration_count;
 	int _max_lossless_iteration_count;
@@ -1021,27 +1019,6 @@ public:
 		return error;
 	}
 
-	char *trimwhitespace(char *str) {
-		char *end;
-
-		// Trim leading space
-		while (isspace((unsigned char)*str))
-			str++;
-
-		if (*str == 0) // All spaces?
-			return str;
-
-		// Trim trailing space
-		end = str + strlen(str) - 1;
-		while (end > str && isspace((unsigned char)*end))
-			end--;
-
-		// Write new null terminator
-		*(end + 1) = 0;
-
-		return str;
-	}
-
 	void initialize(const Array &arrays) {
 		ERR_FAIL_COND(arrays.size() != ArrayMesh::ARRAY_MAX);
 
@@ -1291,7 +1268,6 @@ public:
 		triangles.clear();
 		vertices.clear();
 		refs.clear();
-		materials.clear();
 	}
 }; // namespace Simplify
 
