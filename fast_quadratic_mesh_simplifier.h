@@ -56,8 +56,8 @@ public:
 
 	void initialize(const Array &arrays);
 	Array get_arrays();
-	void simplify_mesh(float quality);
-	void simplify_mesh_lossless();
+	void simplify_mesh(int target_count, double agressiveness = 7, bool verbose = false);
+	void simplify_mesh_lossless(bool verbose = false);
 
 	FastQuadraticMeshSimplifier();
 	~FastQuadraticMeshSimplifier();

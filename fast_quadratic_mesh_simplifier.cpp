@@ -75,12 +75,12 @@ Array FastQuadraticMeshSimplifier::get_arrays() {
 	return simplify.get_arrays();
 }
 
-void FastQuadraticMeshSimplifier::simplify_mesh(float quality) {
-	simplify.simplify_mesh(quality);
+void FastQuadraticMeshSimplifier::simplify_mesh(int target_count, double agressiveness, bool verbose) {
+	simplify.simplify_mesh(target_count, agressiveness, verbose);
 }
 
-void FastQuadraticMeshSimplifier::simplify_mesh_lossless() {
-	simplify.simplify_mesh_lossless();
+void FastQuadraticMeshSimplifier::simplify_mesh_lossless(bool verbose) {
+	simplify.simplify_mesh_lossless(verbose);
 }
 
 FastQuadraticMeshSimplifier::FastQuadraticMeshSimplifier() {
@@ -92,8 +92,8 @@ FastQuadraticMeshSimplifier::~FastQuadraticMeshSimplifier() {
 void FastQuadraticMeshSimplifier::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("initialize", "arrays"), &FastQuadraticMeshSimplifier::initialize);
 	ClassDB::bind_method(D_METHOD("get_arrays"), &FastQuadraticMeshSimplifier::get_arrays);
-	ClassDB::bind_method(D_METHOD("simplify_mesh", "quality"), &FastQuadraticMeshSimplifier::simplify_mesh);
-	ClassDB::bind_method(D_METHOD("simplify_mesh_lossless"), &FastQuadraticMeshSimplifier::simplify_mesh_lossless);
+	ClassDB::bind_method(D_METHOD("simplify_mesh", "target_count", "agressiveness", "verbose"), &FastQuadraticMeshSimplifier::simplify_mesh, DEFVAL(7), DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("simplify_mesh_lossless", "verbose"), &FastQuadraticMeshSimplifier::simplify_mesh_lossless, DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("get_max_iteration_count"), &FastQuadraticMeshSimplifier::get_max_iteration_count);
 	ClassDB::bind_method(D_METHOD("set_max_iteration_count", "value"), &FastQuadraticMeshSimplifier::set_max_iteration_count);
