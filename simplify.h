@@ -533,7 +533,7 @@ public:
 				if (t.dirty)
 					continue;
 
-				for (int j = 0; j < 3; ++j)
+				for (int j = 0; j < 3; ++j) {
 					if (t.err[j] < threshold) {
 						int i0 = t.v[j];
 						Vertex &v0 = vertices[i0];
@@ -584,6 +584,7 @@ public:
 						v0.tcount = tcount;
 						break;
 					}
+				}
 			}
 
 			if (deleted_triangles <= 0)
@@ -601,7 +602,9 @@ public:
 
 		for (int k = 0; k < v0.tcount; ++k) {
 			Triangle &t = triangles[refs[v0.tstart + k].tid];
-			if (t.deleted) continue;
+
+			if (t.deleted)
+				continue;
 
 			int s = refs[v0.tstart + k].tvertex;
 			int id1 = t.v[(s + 1) % 3];
@@ -609,7 +612,6 @@ public:
 
 			if (id1 == i1 || id2 == i1) // delete ?
 			{
-
 				deleted[k] = 1;
 				continue;
 			}
