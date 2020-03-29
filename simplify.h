@@ -22,6 +22,8 @@
 #include "servers/visual_server.h"
 
 #include <float.h> //FLT_EPSILON, DBL_EPSILON
+#include <limits.h>
+#include <algorithm>
 #include <map>
 #include <vector>
 
@@ -317,6 +319,10 @@ struct BorderVertex {
 	int hash;
 };
 
+bool compare_border_vertex(const BorderVertex &i1, const BorderVertex &i2) {
+	return (i1.hash < i2.hash);
+}
+
 class FQMS {
 
 public:
@@ -357,6 +363,7 @@ public:
 	bool _preserve_uv_seam_edges;
 	bool _preserve_uv_foldover_edges;
 	int _format;
+	double _vertex_link_distance;
 
 	// Helper functions
 
@@ -370,6 +377,8 @@ public:
 	//
 
 	void simplify_mesh(int target_count, double agressiveness = 7, bool verbose = false) {
+		ERR_FAIL_COND_MSG(_enable_smart_link, "FastQuadraticMeshSimplifier: enable_smart_link setting is not yet suppored!");
+
 		// init
 		for (unsigned int i = 0; i < triangles.size(); ++i) {
 			triangles[i].deleted = 0;
@@ -487,6 +496,8 @@ public:
 	} //simplify_mesh()
 
 	void simplify_mesh_lossless(bool verbose = false) {
+		ERR_FAIL_COND_MSG(_enable_smart_link, "FastQuadraticMeshSimplifier: enable_smart_link setting is not yet suppored!");
+
 		// init
 		for (unsigned int i = 0; i < triangles.size(); ++i)
 			triangles[i].deleted = 0;
@@ -848,7 +859,83 @@ public:
 				}
 
 				if (_enable_smart_link) {
-					//std::vector<BorderVertex> border_vertices;
+					std::vector<BorderVertex> border_vertices;
+
+					double border_area_width = border_max_x - border_min_x;
+
+					for (int i = 0; i < vertices.size(); i++) {
+						Vertex &v = vertices[i];
+
+						if (v.border) {
+							BorderVertex bv;
+							bv.hash = static_cast<int>(((((v.p.x - border_min_x) / border_area_width) * 2.0) - 1.0) * INT_MAX);
+							bv.index = i;
+
+							border_vertices.push_back(bv);
+						}
+					}
+
+					std::sort(border_vertices.begin(), border_vertices.end(), compare_border_vertex);
+
+					// Calculate the maximum hash distance based on the maximum vertex link distance
+					int tdst = static_cast<int>((_vertex_link_distance / border_area_width) * INT_MAX);
+					int hash_max_distance = MAX(tdst, 1);
+
+					// Then find identical border vertices and bind them together as one
+					for (int i = 0; i < border_vertices.size(); ++i) {
+						BorderVertex &bv = border_vertices[i];
+
+						if (bv.index == -1)
+							continue;
+
+						//var myPoint = vertices[myIndex].p;
+						for (int j = i + 1; j < border_vertices.size(); ++j) {
+							BorderVertex &obv = border_vertices[j];
+
+							//int otherIndex = obv.index;
+							//var otherPoint = vertices[otherIndex].p;
+							if (obv.index == -1)
+								continue;
+
+							else if ((obv.hash - bv.hash) > hash_max_distance) // There is no point to continue beyond this point
+								break;
+
+							Vertex &v = vertices[i];
+							Vertex &ov = vertices[j];
+
+							double sqr_x = ((v.p.x - ov.p.x) * (v.p.x - ov.p.x));
+							double sqr_y = ((v.p.y - ov.p.y) * (v.p.y - ov.p.y));
+							double sqr_z = ((v.p.z - ov.p.z) * (v.p.z - ov.p.z));
+							double sqr_magnitude = sqr_x + sqr_y + sqr_z;
+
+							if (sqr_magnitude <= _vertex_link_distance) {
+								obv.index = -1; // NOTE: This makes sure that the "other" vertex is not processed again
+								v.border = false;
+								ov.border = false;
+								/*
+								if (AreUVsTheSame(0, myIndex, otherIndex)) {
+									vertices[myIndex].foldover = true;
+									vertices[otherIndex].foldover = true;
+								} else {
+									vertices[myIndex].seam = true;
+									vertices[otherIndex].seam = true;
+								}
+
+								int other_triangle_count = ov.tcount;
+								int other_triangle_start = ov.tstart;
+								for (int k = 0; k < other_triangle_count; k++) {
+									Ref &r = refs[other_triangle_start + k];
+
+									Triangle &t = triangles[r.tid];
+									t.v[r.tvertex] = myIndex;
+								}
+								*/
+							}
+						}
+					}
+
+					// Update the references again
+					//update_references();
 				}
 			}
 		}
@@ -1192,11 +1279,12 @@ public:
 	FQMS() {
 		_max_iteration_count = 100;
 		_max_lossless_iteration_count = 9990;
-		_enable_smart_link = true;
+		_enable_smart_link = false;
 		_preserve_border_dges = false;
 		_preserve_uv_seam_edges = false;
 		_preserve_uv_foldover_edges = false;
 		_format = 0;
+		_vertex_link_distance = sqrt(DBL_EPSILON);
 	}
 
 	~FQMS() {
