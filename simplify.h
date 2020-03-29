@@ -17,15 +17,12 @@
 #include "core/array.h"
 #include "core/math/vector2.h"
 #include "core/math/vector3.h"
+#include "core/ustring.h"
 #include "scene/resources/mesh.h"
 #include "servers/visual_server.h"
+
 #include <float.h> //FLT_EPSILON, DBL_EPSILON
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <map>
-#include <string>
 #include <vector>
 
 namespace Simplify {
