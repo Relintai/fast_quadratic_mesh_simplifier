@@ -19,13 +19,25 @@
 #include "core/math/vector3.h"
 #include "core/ustring.h"
 #include "scene/resources/mesh.h"
-#include "servers/visual_server.h"
 
 #include <float.h> //FLT_EPSILON, DBL_EPSILON
 #include <limits.h>
 #include <algorithm>
 #include <map>
 #include <vector>
+
+#include "core/version.h"
+
+#if VERSION_MAJOR < 4
+#include "servers/visual_server.h"
+#else
+#include "servers/rendering_server.h"
+
+typedef class RenderingServer VisualServer;
+typedef class RenderingServer VS;
+
+#define PoolVector Vector
+#endif
 
 namespace Simplify {
 
@@ -1069,8 +1081,9 @@ public:
 
 		PoolVector<int> pindices = arrays.get(ArrayMesh::ARRAY_INDEX);
 
-		if ((pindices.size() % 3) != 0)
+		if ((pindices.size() % 3) != 0) {
 			ERR_FAIL_MSG("The index array length must be a multiple of 3 in order to represent triangles.");
+		}
 
 		//std::vector<std::vector<int> > uvMap;
 
