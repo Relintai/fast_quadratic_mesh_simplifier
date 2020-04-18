@@ -32,44 +32,7 @@ def configure(env):
 
 def get_doc_classes():
     return [
-        "WorldArea",
-
-        "GroundClutterFoliage",
-        "GroundClutter",
-
-        "VoxelmanQueue",
-        "VoxelmanUnboundedQueue",
-        "VoxelLight",
-
-        "VoxelmanLevelGenerator",
-
-        "VoxelSurfaceMerger",
-        "VoxelSurfaceSimple",
-        "VoxelSurface",
-        "VoxelmanLibraryMerger",
-        "VoxelmanLibrarySimple",
-        "VoxelmanLibrary",
-
-        "VoxelCubePoints",
-        "VoxelMesherCubic",
-        "TransvoxelCellData",
-        "VoxelMeshData",
-        "VoxelMesherTransvoxel",
-        "VoxelMesher",
-
-        "PropDataEntity",
-        "PropDataEntry",
-        "PropDataLight",
-        "PropDataMesh",
-        "PropDataProp",
-        "PropDataScene",
-        "PropData",
-
-        "EnvironmentData",
-        "VoxelChunkPropData",
-        "VoxelChunk",
-        "VoxelStructure",
-        "VoxelWorld",
+        "FastQuadraticMeshSimplifier",
     ]
 
 def get_doc_path():
